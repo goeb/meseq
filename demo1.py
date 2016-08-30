@@ -39,6 +39,8 @@ class Demo1(Diagram):
 
         self.arrow(0.25, 0.5, 0.4, 0.51, text)
 
+        self.arrow(0.4, 0.51, 0.6, 0.61, "response")
+        self.arrow(0.6, 0.61, 0.4, 0.61, "response")
 
     def box(self, x, y, text):
 
@@ -51,21 +53,25 @@ class Demo1(Diagram):
 
         print "arrow(", x0, y0, x1, y1, ")"
         angle = math.atan((y1-y0)/(x1-x0))
+        print "angle=", angle
         size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
 
         self.cr.save()
-        #self.cr.translate(x0+(x1-x0)/2, y0+(y1-y0)/2)
+
+        self.cr.translate(x0, y0)
 
         self.cr.arc(0, 0, 0.005, 0, 2 * math.pi)
         self.cr.fill()
 
-        self.cr.rotate(angle)
+        self.cr.rotate(angle) # TODO do not rotate text more than pi
 
-        self.cr.move_to(x0, y0)
-        self.cr.line_to(x1, y1)
+        self.cr.move_to(0, 0)
+        self.cr.line_to(size, 0)
         self.cr.stroke()
 
         # pointer
+        x1 = size
+        y1 = 0
         arrowSize = 0.03 # hypothenuse
         angle = math.pi / 6
         x2 = x1 - arrowSize * math.cos(angle)
@@ -85,8 +91,8 @@ class Demo1(Diagram):
         xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
 
 
-        x = x0 + (x1-x0)/2 - width / 2
-        y = y0 - fdescent
+        x = size / 2 - width / 2
+        y = - fdescent
         print "show_text: ", x, y
         self.cr.move_to(x, y)
         self.cr.show_text(text)
