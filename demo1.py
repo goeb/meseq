@@ -90,10 +90,39 @@ class Diagram(object):
         self.cr.stroke()
 
 
+    def boxWithRoundSides(self, x, y, text):
+        # the box
+        width = w = STEP * 2
+        height = h = STEP * 1
+
+        # white background
+        self.cr.set_source_rgb(1, 1, 1)
+        self.cr.rectangle(x-w/2, y-h/2, w, h)
+        self.cr.fill()
+    
+        self.cr.set_source_rgb(0, 0, 0)
+
+        radius = STEP
+        angle = math.acos(height/2/radius)
+        self.cr.arc(x, y, radius, -angle/2, angle/2)
+        self.cr.stroke()
+        self.cr.arc(x, y, radius, math.pi-angle/2, math.pi+angle/2)
+        self.cr.stroke()
+
+        # draw the horizontal lines
+        dy = radius * math.sin(angle)
+        self.cr.move_to(x-dy, y-height/2)
+        self.cr.line_to(x+dy, y-height/2)
+
+        self.cr.move_to(x-dy, y+height/2)
+        self.cr.line_to(x+dy, y+height/2)
+        self.cr.stroke()
+
+        # the text
+        self.text(x, y, text)
+
     def box(self, x, y, text):
         """Draw a box around (x, y), with centered text."""
-
-        #self.dot(x, y)
 
         # the box
         width = w = STEP * 2
@@ -105,7 +134,6 @@ class Diagram(object):
         # the text
         self.text(x, y, text)
 
-        # the starting life-line
     
     def lifeLine(self, x, y0, y1):
 
@@ -285,6 +313,7 @@ class Demo2(Diagram):
         TIME += STEP
         self.lifeLine(OTHER, TIME, TIME + STEP * 3)
         TIME += STEP
+        self.boxWithRoundSides(OTHER, TIME, "do something")
         TIME += STEP
         self.arrow(OTHER, TIME, HOST1, TIME, "done")
         TIME += STEP
