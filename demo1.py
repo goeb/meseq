@@ -1,24 +1,35 @@
 #! /usr/bin/env python
 import cairo
 import math
+import sys
 
-STEP = 0.1
-BOX_WIDTH = STEP * 2
-BOX_HEIGHT = STEP * 1
+
+STEP = None
 
 ALIGN_BOTTOM = 1
 ALIGN_CENTER = 2
 
 class Diagram(object):
-    def __init__(self, filename, width, height):
+
+    def __init__(self, filename, nActors, nMessages, pixWidth):
+        global STEP
+
+        nxTiles = 4 * nActors
+        STEP = 1.0 * pixWidth / nxTiles
+        width = pixWidth;
+        nyTiles = nMessages * 2
+        height = nyTiles * STEP
+
+        print "width=", width, ", height=", height, ", STEP=", STEP
+
         self.surface = cairo.SVGSurface(filename + '.svg', width, height)
         cr = self.cr = cairo.Context(self.surface)
 
-        cr.scale(width, height)
-        cr.set_line_width(0.01)
+        #cr.scale(width/100.0, height/100.0)
+        cr.set_line_width(STEP/40)
 
         # draw white background
-        cr.rectangle(0, 0, 1, 1)
+        cr.rectangle(0, 0, width, height)
         cr.set_source_rgb(1, 1, 1)
         cr.fill()
 
@@ -26,16 +37,21 @@ class Diagram(object):
 
         cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
         cr.set_source_rgb(0, 0, 0)
-        cr.rectangle(0, 0, 1, 1)
+        cr.rectangle(0, 0, width, height)
         cr.stroke()
 
         self.surface.write_to_png(filename + '.png')
         cr.show_page()
         self.surface.finish()
 
+    def init(self):
+        self.cr.set_source_rgba(0, 0, 0)
+        self.cr.set_line_width(STEP/40)
+        self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+
     def dot(self, x, y):
 
-        self.cr.arc(x, y, 0.005, 0, 2 * math.pi)
+        self.cr.arc(x, y, STEP/20, 0, 2 * math.pi)
         self.cr.fill()
 
 
@@ -43,6 +59,7 @@ class Diagram(object):
         
         self.box(x, y, text)
 
+        BOX_HEIGHT = STEP * 1
         # the life line
         y0 = y + BOX_HEIGHT/2
         self.cr.move_to(x, y0)
@@ -56,8 +73,8 @@ class Diagram(object):
         #self.dot(x, y)
 
         # the box
-        width = w = BOX_WIDTH
-        height = h = BOX_HEIGHT
+        width = w = STEP * 2
+        height = h = STEP * 1
 
         self.cr.rectangle(x-w/2, y-h/2, w, h)
         self.cr.stroke()
@@ -75,7 +92,7 @@ class Diagram(object):
 
     def text(self, x, y, text, flags = ALIGN_CENTER):
         """Write some text centered on (x, y)."""
-        self.cr.set_font_size(0.03)
+        self.cr.set_font_size(STEP/4)
         fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
         xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
 
@@ -115,7 +132,7 @@ class Diagram(object):
         # a small dot for the starting point of the arrow
         self.dot(0, 0)
 
-        self.cr.rotate(angle) # TODO do not rotate text more than pi
+        self.cr.rotate(angle)
 
         # the main line of the arrow
         self.cr.move_to(0, 0)
@@ -126,7 +143,7 @@ class Diagram(object):
 
         # head of the arrow
         yHead = 0
-        arrowSize = 0.03 # hypothenuse
+        arrowSize = STEP/4 # hypothenuse
         hAngle = math.pi / 6
         x2 = xHead - arrowSize * math.cos(hAngle) * sign
         y2 = yHead - arrowSize * math.sin(hAngle)
@@ -149,16 +166,8 @@ class Diagram(object):
 
 class Demo1(Diagram):
     def draw_dest(self):
-        text = 'request'
 
-        self.cr.set_source_rgba(0, 0, 0)
-        self.cr.set_line_width(0.003)
-        self.px = max(self.cr.device_to_user_distance(1, 1))
-        self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
-        #self.arrow(0.25, 0.5, 0.4, 0.51, text)
-        #self.arrow(0.4, 0.51, 0.6, 0.61, "response")
-        #self.arrow(0.6, 0.71, 0.4, 0.71, "response")
+        self.init()
 
         # Bob
         BOB = STEP * 2
@@ -179,8 +188,43 @@ class Demo1(Diagram):
         self.arrow(BOB, TIME, ALICE, TIME+STEP, "it's rainy today")
         TIME += STEP
 
+class Demo2(Diagram):
+    def draw_dest(self):
+
+        self.init()
+
+        # Host1
+        HOST1 = STEP * 2
+        self.boxWithLifeLine(HOST1, STEP, "Host 1")
+        self.lifeLine(HOST1, STEP * 2, STEP * 9)
+
+        # Example.com
+        EXAMPLE_COM = STEP * 7
+        self.boxWithLifeLine(EXAMPLE_COM, STEP, "example.com")
+        self.lifeLine(EXAMPLE_COM, STEP * 2, STEP * 9)
+
+        TIME = STEP * 2
+        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=23")
+        TIME += STEP
+        TIME += STEP
+        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=24")
+        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=23")
+        TIME += STEP
+        TIME += STEP
+        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=24")
+        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=25")
+
+        TIME += STEP
+
 
 
 if __name__ == '__main__':
-    size = 600
-    Demo1('demo1', size, size)
+    pixWidth = 600
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+
+    else:
+        arg = 'demo1'
+
+    if arg == 'demo1': Demo1('demo1', 2, 5, pixWidth)
+    elif arg == 'demo2': Demo2('demo2', 3, 10, pixWidth)
