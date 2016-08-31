@@ -12,6 +12,9 @@ ALIGN_CENTER = 1 << 2
 ARROW_NORMAL = 1 << 3
 ARROW_LOST   = 1 << 4
 
+ARROW_HEAD_LEFT = 1
+ARROW_HEAD_RIGHT = 2
+
 class Diagram(object):
 
     def __init__(self, filename, nActors, nMessages, pixWidth):
@@ -165,17 +168,9 @@ class Diagram(object):
 
         if flags == ARROW_NORMAL:
             # head of the arrow
-            arrowSize = STEP/4 # hypothenuse
-            hAngle = math.pi / 6
-            x2 = xHead - arrowSize * math.cos(hAngle) * sign
-            y2 = yHead - arrowSize * math.sin(hAngle)
-            self.cr.move_to(xHead, yHead)
-            self.cr.line_to(x2, y2)
-            self.cr.move_to(xHead, yHead)
-            x3 = xHead - arrowSize * math.cos(hAngle) * sign
-            y3 = yHead + arrowSize * math.sin(hAngle)
-            self.cr.line_to(x3, y3)
-            self.cr.stroke()
+            if sign > 0: flag = ARROW_HEAD_RIGHT
+            else: flag = ARROW_HEAD_LEFT
+            self.arrowHead(xHead, yHead, flag)
         elif flags == ARROW_LOST:
             # draw an 'x'
             self.cross(xHead, yHead)
@@ -194,6 +189,37 @@ class Diagram(object):
 
     def createActor(self, x0, y0, x1, y1, text):
         self.arrow(x0, y0, x1, y1, text)
+
+    def arrowHead(self, x, y, flags):
+        arrowSize = STEP/4 # hypothenuse
+        hAngle = math.pi / 6
+
+        if flags == ARROW_HEAD_RIGHT: sign = 1
+        else: sign = -1
+
+        x2 = x - arrowSize * math.cos(hAngle) * sign
+        y2 = y - arrowSize * math.sin(hAngle)
+        self.cr.move_to(x, y)
+        self.cr.line_to(x2, y2)
+
+        x3 = x - arrowSize * math.cos(hAngle) * sign
+        y3 = y + arrowSize * math.sin(hAngle)
+        self.cr.move_to(x, y)
+        self.cr.line_to(x3, y3)
+        self.cr.stroke()
+
+
+    def messageToSelf(self, x0, y0, y1, text):
+
+        self.cr.move_to(x0, y0)
+        self.cr.line_to(x0 + STEP, y0)
+        self.cr.line_to(x0 + STEP, y1)
+        self.cr.line_to(x0, y1)
+
+        self.arrowHead(x0, y1, ARROW_HEAD_LEFT)
+
+        # set text
+        self.text(x0 + STEP*1.5, y0+STEP*0.5, text)
 
 
 class Demo1(Diagram):
@@ -238,6 +264,7 @@ class Demo2(Diagram):
         TIME = STEP * 2
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=23")
         TIME += STEP
+        self.messageToSelf(HOST1, TIME, TIME+STEP*8, "timer")
         TIME += STEP
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=24")
         self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=23", ARROW_LOST)
@@ -246,6 +273,8 @@ class Demo2(Diagram):
         self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=24")
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=25")
 
+        TIME += STEP
+        TIME += STEP
         TIME += STEP
         TIME += STEP
         TIME += STEP
