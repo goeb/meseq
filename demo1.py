@@ -26,6 +26,13 @@ class Diagram(object):
         cr.show_page()
         self.surface.finish()
 
+STEP = 0.1
+BOX_WIDTH = STEP * 2
+BOX_HEIGHT = STEP * 1
+
+ALIGN_BOTTOM = 1
+ALIGN_CENTER = 2
+
 class Demo1(Diagram):
     def draw_dest(self):
         text = 'request'
@@ -35,14 +42,29 @@ class Demo1(Diagram):
         self.px = max(self.cr.device_to_user_distance(1, 1))
         self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
+        #self.arrow(0.25, 0.5, 0.4, 0.51, text)
+        #self.arrow(0.4, 0.51, 0.6, 0.61, "response")
+        #self.arrow(0.6, 0.71, 0.4, 0.71, "response")
 
+        # Bob
+        BOB = STEP * 2
+        self.boxWithLifeLine(BOB, STEP, "Bob")
+        self.lifeLine(BOB, STEP * 2, STEP * 9)
 
-        self.arrow(0.25, 0.5, 0.4, 0.51, text)
+        # Alice
+        ALICE = STEP * 5
+        self.boxWithLifeLine(ALICE, STEP, "Alice")
+        self.lifeLine(ALICE, STEP * 2, STEP * 9)
 
-        self.arrow(0.4, 0.51, 0.6, 0.61, "response")
-        self.arrow(0.6, 0.71, 0.4, 0.71, "response")
+        TIME = STEP * 3
+        # Bob says "hello" to Alice
+        self.arrow(BOB, TIME, ALICE, TIME, "hello")
+        TIME += STEP
+        self.arrow(ALICE, TIME, BOB, TIME, "hi, what's up?")
+        TIME += STEP
+        self.arrow(BOB, TIME, ALICE, TIME+STEP, "nice day today")
+        TIME += STEP
 
-        self.box(0.2, 0.2, "toto")
 
     def dot(self, x, y):
 
@@ -50,14 +72,25 @@ class Demo1(Diagram):
         self.cr.fill()
 
 
+    def boxWithLifeLine(self, x, y, text):
+        
+        self.box(x, y, text)
+
+        # the life line
+        y0 = y + BOX_HEIGHT/2
+        self.cr.move_to(x, y0)
+        self.cr.line_to(x, y0 + BOX_HEIGHT/2)
+        self.cr.stroke()
+
+
     def box(self, x, y, text):
-        """Draw a box around (x, y), with text and a starting life-line."""
+        """Draw a box around (x, y), with centered text."""
 
         #self.dot(x, y)
 
         # the box
-        width = w = 0.15
-        height = h = 0.07
+        width = w = BOX_WIDTH
+        height = h = BOX_HEIGHT
 
         self.cr.rectangle(x-w/2, y-h/2, w, h)
         self.cr.stroke()
@@ -67,15 +100,24 @@ class Demo1(Diagram):
 
         # the starting life-line
     
+    def lifeLine(self, x, y0, y1):
 
-    def text(self, x, y, text):
+        self.cr.move_to(x, y0)
+        self.cr.line_to(x, y1)
+        self.cr.stroke()
+
+    def text(self, x, y, text, flags = ALIGN_CENTER):
         """Write some text centered on (x, y)."""
         self.cr.set_font_size(0.03)
         fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
         xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
 
         xRef = x - width / 2
-        yRef = y + fdescent
+
+        if flags == ALIGN_BOTTOM:
+            yRef = y - height / 2
+        else: # centered
+            yRef = y + fdescent
 
         self.cr.move_to(xRef, yRef)
         self.cr.show_text(text)
@@ -131,17 +173,9 @@ class Demo1(Diagram):
         
 
         # text
-        self.cr.set_font_size(0.03)
-        fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
-        xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
-
-
-        x = xHead / 2 - width / 2
-        y = - fdescent
-        print "show_text: ", x, y
-        self.cr.move_to(x, y)
-        self.cr.show_text(text)
-
+        x = xHead / 2
+        y = 0
+        self.text(x, y, text, ALIGN_BOTTOM)
 
         self.cr.restore()
 
