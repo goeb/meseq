@@ -42,12 +42,43 @@ class Demo1(Diagram):
         self.arrow(0.4, 0.51, 0.6, 0.61, "response")
         self.arrow(0.6, 0.71, 0.4, 0.71, "response")
 
-    def box(self, x, y, text):
+        self.box(0.2, 0.2, "toto")
 
-        self.cr.rectangle(x, y, 0.5, 0.5)
+    def dot(self, x, y):
+
+        self.cr.arc(x, y, 0.005, 0, 2 * math.pi)
+        self.cr.fill()
+
+
+    def box(self, x, y, text):
+        """Draw a box around (x, y), with text and a starting life-line."""
+
+        #self.dot(x, y)
+
+        # the box
+        width = w = 0.15
+        height = h = 0.07
+
+        self.cr.rectangle(x-w/2, y-h/2, w, h)
         self.cr.stroke()
 
+        # the text
+        self.text(x, y, text)
 
+        # the starting life-line
+    
+
+    def text(self, x, y, text):
+        """Write some text centered on (x, y)."""
+        self.cr.set_font_size(0.03)
+        fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
+        xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
+
+        xRef = x - width / 2
+        yRef = y + fdescent
+
+        self.cr.move_to(xRef, yRef)
+        self.cr.show_text(text)
 
     def arrow(self, x0, y0, x1, y1, text):
 
@@ -73,8 +104,7 @@ class Demo1(Diagram):
         self.cr.translate(x0, y0)
 
         # a small dot for the starting point of the arrow
-        self.cr.arc(0, 0, 0.005, 0, 2 * math.pi)
-        self.cr.fill()
+        self.dot(0, 0)
 
         self.cr.rotate(angle) # TODO do not rotate text more than pi
 
