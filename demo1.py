@@ -2,6 +2,13 @@
 import cairo
 import math
 
+STEP = 0.1
+BOX_WIDTH = STEP * 2
+BOX_HEIGHT = STEP * 1
+
+ALIGN_BOTTOM = 1
+ALIGN_CENTER = 2
+
 class Diagram(object):
     def __init__(self, filename, width, height):
         self.surface = cairo.SVGSurface(filename + '.svg', width, height)
@@ -25,46 +32,6 @@ class Diagram(object):
         self.surface.write_to_png(filename + '.png')
         cr.show_page()
         self.surface.finish()
-
-STEP = 0.1
-BOX_WIDTH = STEP * 2
-BOX_HEIGHT = STEP * 1
-
-ALIGN_BOTTOM = 1
-ALIGN_CENTER = 2
-
-class Demo1(Diagram):
-    def draw_dest(self):
-        text = 'request'
-
-        self.cr.set_source_rgba(0, 0, 0)
-        self.cr.set_line_width(0.003)
-        self.px = max(self.cr.device_to_user_distance(1, 1))
-        self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
-        #self.arrow(0.25, 0.5, 0.4, 0.51, text)
-        #self.arrow(0.4, 0.51, 0.6, 0.61, "response")
-        #self.arrow(0.6, 0.71, 0.4, 0.71, "response")
-
-        # Bob
-        BOB = STEP * 2
-        self.boxWithLifeLine(BOB, STEP, "Bob")
-        self.lifeLine(BOB, STEP * 2, STEP * 9)
-
-        # Alice
-        ALICE = STEP * 5
-        self.boxWithLifeLine(ALICE, STEP, "Alice")
-        self.lifeLine(ALICE, STEP * 2, STEP * 9)
-
-        TIME = STEP * 3
-        # Bob says "hello" to Alice
-        self.arrow(BOB, TIME, ALICE, TIME, "hello")
-        TIME += STEP
-        self.arrow(ALICE, TIME, BOB, TIME, "hi, what's up?")
-        TIME += STEP
-        self.arrow(BOB, TIME, ALICE, TIME+STEP, "nice day today")
-        TIME += STEP
-
 
     def dot(self, x, y):
 
@@ -178,6 +145,40 @@ class Demo1(Diagram):
         self.text(x, y, text, ALIGN_BOTTOM)
 
         self.cr.restore()
+
+
+class Demo1(Diagram):
+    def draw_dest(self):
+        text = 'request'
+
+        self.cr.set_source_rgba(0, 0, 0)
+        self.cr.set_line_width(0.003)
+        self.px = max(self.cr.device_to_user_distance(1, 1))
+        self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+
+        #self.arrow(0.25, 0.5, 0.4, 0.51, text)
+        #self.arrow(0.4, 0.51, 0.6, 0.61, "response")
+        #self.arrow(0.6, 0.71, 0.4, 0.71, "response")
+
+        # Bob
+        BOB = STEP * 2
+        self.boxWithLifeLine(BOB, STEP, "Bob")
+        self.lifeLine(BOB, STEP * 2, STEP * 9)
+
+        # Alice
+        ALICE = STEP * 5
+        self.boxWithLifeLine(ALICE, STEP, "Alice")
+        self.lifeLine(ALICE, STEP * 2, STEP * 9)
+
+        TIME = STEP * 3
+        # Bob says "hello" to Alice
+        self.arrow(BOB, TIME, ALICE, TIME, "hello")
+        TIME += STEP
+        self.arrow(ALICE, TIME, BOB, TIME, "hi, what's up?")
+        TIME += STEP
+        self.arrow(BOB, TIME, ALICE, TIME+STEP, "it's rainy today")
+        TIME += STEP
+
 
 
 if __name__ == '__main__':
