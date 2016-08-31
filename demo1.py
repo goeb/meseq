@@ -6,8 +6,11 @@ import sys
 
 STEP = None
 
-ALIGN_BOTTOM = 1
-ALIGN_CENTER = 2
+ALIGN_BOTTOM = 1 << 1
+ALIGN_CENTER = 1 << 2
+
+ARROW_NORMAL = 1 << 3
+ARROW_LOST   = 1 << 4
 
 class Diagram(object):
 
@@ -49,7 +52,7 @@ class Diagram(object):
         self.cr.set_line_width(STEP/40)
         self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
-    def terminateProcess(self, x, y):
+    def cross(self, x, y):
         # draw an 'x'
         self.cr.save()
         self.cr.translate(x, y)
@@ -61,6 +64,8 @@ class Diagram(object):
 
         self.cr.move_to(0, -size)
         self.cr.line_to(0, size)
+
+        self.cr.stroke()
 
         self.cr.restore()
 
@@ -121,9 +126,7 @@ class Diagram(object):
         self.cr.move_to(xRef, yRef)
         self.cr.show_text(text)
 
-    def arrow(self, x0, y0, x1, y1, text):
-
-        print "arrow(", x0, y0, x1, y1, ")"
+    def arrow(self, x0, y0, x1, y1, text, flags = ARROW_NORMAL):
 
         if x1 == x0:
             print "error, arrow"
@@ -139,6 +142,8 @@ class Diagram(object):
 
         print "angle=", angle
         size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
+
+        if flags == ARROW_LOST: size = STEP
 
         self.cr.save()
 
@@ -156,19 +161,27 @@ class Diagram(object):
         self.cr.line_to(xHead, 0)
         self.cr.stroke()
 
-        # head of the arrow
         yHead = 0
-        arrowSize = STEP/4 # hypothenuse
-        hAngle = math.pi / 6
-        x2 = xHead - arrowSize * math.cos(hAngle) * sign
-        y2 = yHead - arrowSize * math.sin(hAngle)
-        self.cr.move_to(xHead, yHead)
-        self.cr.line_to(x2, y2)
-        self.cr.move_to(xHead, yHead)
-        x3 = xHead - arrowSize * math.cos(hAngle) * sign
-        y3 = yHead + arrowSize * math.sin(hAngle)
-        self.cr.line_to(x3, y3)
-        self.cr.stroke()
+
+        if flags == ARROW_NORMAL:
+            # head of the arrow
+            arrowSize = STEP/4 # hypothenuse
+            hAngle = math.pi / 6
+            x2 = xHead - arrowSize * math.cos(hAngle) * sign
+            y2 = yHead - arrowSize * math.sin(hAngle)
+            self.cr.move_to(xHead, yHead)
+            self.cr.line_to(x2, y2)
+            self.cr.move_to(xHead, yHead)
+            x3 = xHead - arrowSize * math.cos(hAngle) * sign
+            y3 = yHead + arrowSize * math.sin(hAngle)
+            self.cr.line_to(x3, y3)
+            self.cr.stroke()
+        elif flags == ARROW_LOST:
+            # draw an 'x'
+            self.cross(xHead, yHead)
+
+        else:
+            print "error, invalid flag:", flags
         
 
         # text
@@ -227,7 +240,7 @@ class Demo2(Diagram):
         TIME += STEP
         TIME += STEP
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=24")
-        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=23")
+        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=23", ARROW_LOST)
         TIME += STEP
         TIME += STEP
         self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=24")
@@ -236,16 +249,17 @@ class Demo2(Diagram):
         TIME += STEP
         TIME += STEP
         TIME += STEP
+        TIME += STEP
         OTHER = EXAMPLE_COM + STEP*5
-        self.createActor(EXAMPLE_COM, TIME, OTHER-STEP, TIME, "create")
+        self.createActor(HOST1, TIME, OTHER-STEP, TIME, "create")
         self.boxWithLifeLine(OTHER, TIME, "other host")
         TIME += STEP
         self.lifeLine(OTHER, TIME, TIME + STEP * 3)
         TIME += STEP
         TIME += STEP
-        self.arrow(OTHER, TIME, EXAMPLE_COM, TIME, "done")
+        self.arrow(OTHER, TIME, HOST1, TIME, "done")
         TIME += STEP
-        self.terminateProcess(OTHER, TIME)
+        self.cross(OTHER, TIME)
 
 
 
