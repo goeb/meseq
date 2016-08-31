@@ -40,7 +40,7 @@ class Demo1(Diagram):
         self.arrow(0.25, 0.5, 0.4, 0.51, text)
 
         self.arrow(0.4, 0.51, 0.6, 0.61, "response")
-        self.arrow(0.6, 0.61, 0.4, 0.61, "response")
+        self.arrow(0.6, 0.71, 0.4, 0.71, "response")
 
     def box(self, x, y, text):
 
@@ -52,7 +52,19 @@ class Demo1(Diagram):
     def arrow(self, x0, y0, x1, y1, text):
 
         print "arrow(", x0, y0, x1, y1, ")"
+
+        if x1 == x0:
+            print "error, arrow"
+            return
+
+        elif x1 < x0:
+            sign = -1 # indicate that the arrow is from right to left
+
+        else:
+            sign = 1
+
         angle = math.atan((y1-y0)/(x1-x0))
+
         print "angle=", angle
         size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
 
@@ -60,38 +72,41 @@ class Demo1(Diagram):
 
         self.cr.translate(x0, y0)
 
+        # a small dot for the starting point of the arrow
         self.cr.arc(0, 0, 0.005, 0, 2 * math.pi)
         self.cr.fill()
 
         self.cr.rotate(angle) # TODO do not rotate text more than pi
 
+        # the main line of the arrow
         self.cr.move_to(0, 0)
-        self.cr.line_to(size, 0)
+        xHead = size * sign
+
+        self.cr.line_to(xHead, 0)
         self.cr.stroke()
 
-        # pointer
-        x1 = size
-        y1 = 0
+        # head of the arrow
+        yHead = 0
         arrowSize = 0.03 # hypothenuse
-        angle = math.pi / 6
-        x2 = x1 - arrowSize * math.cos(angle)
-        y2 = y1 - arrowSize * math.sin(angle)
-        self.cr.move_to(x1, y1)
+        hAngle = math.pi / 6
+        x2 = xHead - arrowSize * math.cos(hAngle) * sign
+        y2 = yHead - arrowSize * math.sin(hAngle)
+        self.cr.move_to(xHead, yHead)
         self.cr.line_to(x2, y2)
-        self.cr.move_to(x1, y1)
-        x3 = x1 - arrowSize * math.cos(angle)
-        y3 = y1 + arrowSize * math.sin(angle)
+        self.cr.move_to(xHead, yHead)
+        x3 = xHead - arrowSize * math.cos(hAngle) * sign
+        y3 = yHead + arrowSize * math.sin(hAngle)
         self.cr.line_to(x3, y3)
         self.cr.stroke()
         
 
         # text
-        self.cr.set_font_size(0.05)
+        self.cr.set_font_size(0.03)
         fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
         xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
 
 
-        x = size / 2 - width / 2
+        x = xHead / 2 - width / 2
         y = - fdescent
         print "show_text: ", x, y
         self.cr.move_to(x, y)
