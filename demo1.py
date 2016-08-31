@@ -14,7 +14,7 @@ class Diagram(object):
     def __init__(self, filename, nActors, nMessages, pixWidth):
         global STEP
 
-        nxTiles = 4 * nActors
+        nxTiles = 2 + 4 * nActors
         STEP = 1.0 * pixWidth / nxTiles
         width = pixWidth;
         nyTiles = nMessages * 2
@@ -48,6 +48,21 @@ class Diagram(object):
         self.cr.set_source_rgba(0, 0, 0)
         self.cr.set_line_width(STEP/40)
         self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+
+    def terminateProcess(self, x, y):
+        # draw an 'x'
+        self.cr.save()
+        self.cr.translate(x, y)
+        self.cr.rotate(math.pi/4)
+
+        size = STEP/5
+        self.cr.move_to(-size, 0)
+        self.cr.line_to(size, 0)
+
+        self.cr.move_to(0, -size)
+        self.cr.line_to(0, size)
+
+        self.cr.restore()
 
     def dot(self, x, y):
 
@@ -164,6 +179,10 @@ class Diagram(object):
         self.cr.restore()
 
 
+    def createActor(self, x0, y0, x1, y1, text):
+        self.arrow(x0, y0, x1, y1, text)
+
+
 class Demo1(Diagram):
     def draw_dest(self):
 
@@ -196,12 +215,12 @@ class Demo2(Diagram):
         # Host1
         HOST1 = STEP * 2
         self.boxWithLifeLine(HOST1, STEP, "Host 1")
-        self.lifeLine(HOST1, STEP * 2, STEP * 9)
+        self.lifeLine(HOST1, STEP * 2, STEP * 20)
 
         # Example.com
-        EXAMPLE_COM = STEP * 7
+        EXAMPLE_COM = HOST1 + STEP * 5
         self.boxWithLifeLine(EXAMPLE_COM, STEP, "example.com")
-        self.lifeLine(EXAMPLE_COM, STEP * 2, STEP * 9)
+        self.lifeLine(EXAMPLE_COM, STEP * 2, STEP * 20)
 
         TIME = STEP * 2
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=23")
@@ -215,6 +234,18 @@ class Demo2(Diagram):
         self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=25")
 
         TIME += STEP
+        TIME += STEP
+        TIME += STEP
+        OTHER = EXAMPLE_COM + STEP*5
+        self.createActor(EXAMPLE_COM, TIME, OTHER-STEP, TIME, "create")
+        self.boxWithLifeLine(OTHER, TIME, "other host")
+        TIME += STEP
+        self.lifeLine(OTHER, TIME, TIME + STEP * 3)
+        TIME += STEP
+        TIME += STEP
+        self.arrow(OTHER, TIME, EXAMPLE_COM, TIME, "done")
+        TIME += STEP
+        self.terminateProcess(OTHER, TIME)
 
 
 
