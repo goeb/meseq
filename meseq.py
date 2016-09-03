@@ -303,6 +303,7 @@ NT_BOX       = 3
 NT_TERMINATE = 4
 NT_LIFELINE  = 5
 NT_REF_NOTE  = 6
+NT_COLON     = 7
 NT_NONE      = 100
 class Node:
     def __init__(self):
@@ -372,6 +373,7 @@ def mscParseTokens(line):
         c = line[i]
         if state == ST_READY:
             if c.isspace(): continue
+            if c == '#': break # rest of the line is a comment
             if c in ReservedTokens:
                 tokens.append(c)
                 continue
@@ -405,12 +407,10 @@ def mscParseTokens(line):
     if currentToken is not None: tokens.append(currentToken)
     
     return tokens
-    
-
-            
 
 def mscParse(data):
     lines = mscConsolidateLines(data)
+    ast = {}
     currentSection = ''
     mscdesc = MscDescription()
     for line in lines:
@@ -419,8 +419,26 @@ def mscParse(data):
         elif line[0] == '#': continue
         elif line[0] == '[':
             currentSection = mscParseSectionName(line)
+            ast[currentSection] = []
         else:
             tokens = mscParseTokens(line)
+            ast[currentSection].append(tokens)
+
+    matrix = []
+    # populate matrix from AST, section 'scenario'
+    for lines in ast['scenario']:
+        row = []
+        if line[0] == ':':
+            node = Node(NT_COLON)
+            if len(line) == 2:
+                node.id = line[1]
+            elif len(line) > 2:
+                die('Invalid goto-label, len=%d' % len(line))
+            row.append(node)
+        else:
+        
+            
+            
 
 def generateImage(matrix):
     pixWidth = 600

@@ -1,7 +1,4 @@
 
-
-
-
 ---------------- demo.msc ------------
 [init]
 actors host1="Host 1" excom="example.com"
