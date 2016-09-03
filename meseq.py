@@ -348,24 +348,66 @@ def mscConsolidateLines(data):
 
     return outLines
 
-def mscParseSectionName(line)
+def mscParseSectionName(line):
     try:
         section = line[1:].split(']')[0]
+        return section
     except:
         die('Invalid section declaration: %s' % line)
 
 ReservedTokens = [ '=', ':' ]
 
 def mscParseTokens(line):
+    """Return the list of the tokens of the line."""
+    # TODO escape \"
     # states
     ST_READY = 0
     ST_IN_TOKEN = 1
     ST_IN_TOKEN_IN_DQUOTE = 2
 
     state = ST_READY
+    tokens = []
+    currentToken = None
     for i in range(len(line)):
+        c = line[i]
         if state == ST_READY:
-            if 
+            if c.isspace(): continue
+            if c in ReservedTokens:
+                tokens.append(c)
+                continue
+                
+            if c == '"':
+                state = ST_IN_TOKEN_IN_DQUOTE
+                currentToken = ''
+            else:
+                state = ST_IN_TOKEN
+                currentToken = c
+
+        elif state == ST_IN_TOKEN:
+            if c in ReservedTokens:
+                tokens.append(currentToken)
+                tokens.append(c)
+                state = ST_READY
+                continue
+            if c.isspace():
+                tokens.append(currentToken)
+                state = ST_READY
+                currentToken = None
+                continue
+            if c == '"': state = ST_IN_TOKEN_IN_DQUOTE
+            else: currentToken += c
+
+        elif state == ST_IN_TOKEN_IN_DQUOTE:
+            if c == '"': state = ST_IN_TOKEN
+            else: currentToken += c
+           
+    # append last token
+    if currentToken is not None: tokens.append(currentToken)
+    
+    return tokens
+    
+
+            
 
 def mscParse(data):
     lines = mscConsolidateLines(data)
