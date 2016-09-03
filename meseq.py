@@ -301,13 +301,19 @@ NT_ACTOR     = 1
 NT_MSG       = 2
 NT_BOX       = 3
 NT_TERMINATE = 4
-NT_LIFELINE  = 5
-NT_REF_NOTE  = 6
-NT_COLON     = 7
+NT_REF_NOTE  = 5
+NT_COLON     = 6
 NT_NONE      = 100
 class Node:
-    def __init__(self):
-        self.type = NT_NONE
+    def __init__(self, type):
+        self.type = type
+        self.actorSrc = None
+        self.actorDest = None
+        self.options = {}
+        self.msgVerb = None
+
+    def setOption(self, key, value):
+        self.options[key] = value
 
 class Matrix:
     pass
@@ -327,7 +333,7 @@ def die(msg):
     sys.exit(1)
 
 def mscConsolidateLines(data):
-    inLines = data.splitlines()
+    lines = data.splitlines()
     outLines = []
     concatenate = False
     currentLine = ''
@@ -335,12 +341,13 @@ def mscConsolidateLines(data):
     for line in lines:
 
         if concatenate: currentLine += line
+	else: currentLine = line
 
         if len(line) and line[-1] == '\\':
             # concatenate the next line
             concatenate = True
         else:
-            outLines += currentLine
+            outLines.append(currentLine)
             concatenate=  False
             currentLine = ''
 
@@ -408,9 +415,82 @@ def mscParseTokens(line):
     
     return tokens
 
+def tokenParseKeyEqualValue(line):
+    token1 = None
+    token2 = None
+    options = {}
+    originalLine = line[:]
+    while len(line) > 0:
+        tok = line.pop(0)
+        if tok == '=':
+
+            if token2 is None:
+                die('Invalid = in line: %s' % originalLine)
+
+            if token1 is not None:
+                options['label'] = token1
+
+            token1 = token2
+            token2 = tok
+
+        elif token1 is None and token2 is None:
+            token2 = tok
+
+        elif token2 == '=':
+            if token1 is None:
+                die('Invalid a=b wihout a, in line: %s' % originalLine)
+            key = token1
+            value = tok
+            options[key] = value
+            token1 = None
+            token2 = None
+        elif token1 is None and token2 is not None:
+            token1 = token2
+            token2 = tok
+        else:
+            die('unexpected error in line: %s' % originalLine)
+
+    return options
+
+def tokenParseScenarioLine(line):
+    """Return a Node()."""
+
+    if line[0] == ':':
+        node = Node(NT_COLON)
+        if len(line) == 2:
+            node.id = line[1]
+        elif len(line) > 2:
+            die('Invalid goto-label, len=%d' % len(line))
+        return node
+
+    elif len(line) >= 2 and line[1] == '+':
+        node = Node(NT_TERMINATE)
+        node.actorSrc = line[0]
+        return node
+
+    elif len(line) < 3:
+        die('Invalid scenario line: %s' % line)
+
+    # message 
+    if line[1] in [ '->', '-*', '-x' ] :
+        node = Node(NT_MSG)
+        node.msgVerb = line[1]
+    elif line[1] == '-box':
+        node = Node(NT_BOX)
+    else:
+        die('Invalid message line: %s' % line)
+
+    node.actorDest = line[2]
+    # parse the options
+    options = tokenParseKeyEqualValue(line[3:])
+    node.options = options
+
+    return node
+
+
 def mscParse(data):
     lines = mscConsolidateLines(data)
-    ast = {}
+    dataTokens = {}
     currentSection = ''
     mscdesc = MscDescription()
     for line in lines:
@@ -419,26 +499,32 @@ def mscParse(data):
         elif line[0] == '#': continue
         elif line[0] == '[':
             currentSection = mscParseSectionName(line)
-            ast[currentSection] = []
+            dataTokens[currentSection] = []
         else:
             tokens = mscParseTokens(line)
-            ast[currentSection].append(tokens)
+            dataTokens[currentSection].append(tokens)
 
-    matrix = []
-    # populate matrix from AST, section 'scenario'
-    for lines in ast['scenario']:
-        row = []
-        if line[0] == ':':
-            node = Node(NT_COLON)
-            if len(line) == 2:
-                node.id = line[1]
-            elif len(line) > 2:
-                die('Invalid goto-label, len=%d' % len(line))
-            row.append(node)
+    initialActors = []
+    for line in dataTokens['init']:
+        if line[0] == 'actors':
+            initialActors = tokenParseKeyEqualValue(line[1:])
+            
         else:
-        
+            die('Invalid declaration in init: %s' % line)
+
+    if len(initialActors) == 0:
+        die('No initial actor')
+
+    # parse section 'scenario'
+    lifeline = []
+    for line in dataTokens['scenario']:
+        lifeline.append(tokenParseScenarioLine(line))
+
+    return initialActors, lifeline
+
             
-            
+def computeGraph(initialActors, data):
+    pass
 
 def generateImage(matrix):
     pixWidth = 600
@@ -449,8 +535,33 @@ def generateImage(matrix):
 def main():
     args = parseCommandLine()
     #inputData = readInput(args.input)
-    inputData = 'xyz="toto"/x/y/z'
-    matrix = mscParse(inputData)
+    inputData = """
+[init]
+actors host1="Host 1" excom="example.com"
+
+[scenario]
+    host1 -> excom "seq=23"
+    host1 -> host1 "timer"   goto=timer_expiry
+    host1 -> excom "seq=24"  goto=a
+    excom -x host1 "ack=23"  goto=b x = c fff = erer
+    :a
+    host1 -> excom "seq=25"  goto=b
+    excom -> host1 "ack=24"  goto=c
+    :b
+    :c
+    :
+    :timer_expiry
+
+    host1 -* other "create" actor="other host"
+    other -box "do something"
+    other -> host1 "done"
+    other +
+
+    """
+    initialActors, data = mscParse(inputData)
+    print 'initialActors=', initialActors
+    print 'data=', data
+    matrix = computeGraph(initialActors, data)
     generateImage(matrix)
 
 if __name__ == '__main__':
