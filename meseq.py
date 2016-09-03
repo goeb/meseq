@@ -317,6 +317,10 @@ def parseCommandLine():
 def readInput(file):
     pass
 
+class MscDescription:
+    def __init__(self):
+        self.lines = []
+
 def die(msg):
     sys.stderr.write(msg + '\n')
     sys.exit(1)
@@ -344,12 +348,37 @@ def mscConsolidateLines(data):
 
     return outLines
 
+def mscParseSectionName(line)
+    try:
+        section = line[1:].split(']')[0]
+    except:
+        die('Invalid section declaration: %s' % line)
+
+ReservedTokens = [ '=', ':' ]
+
+def mscParseTokens(line):
+    # states
+    ST_READY = 0
+    ST_IN_TOKEN = 1
+    ST_IN_TOKEN_IN_DQUOTE = 2
+
+    state = ST_READY
+    for i in range(len(line)):
+        if state == ST_READY:
+            if 
+
 def mscParse(data):
     lines = mscConsolidateLines(data)
     currentSection = ''
+    mscdesc = MscDescription()
     for line in lines:
         line = line.strip()
-        xxxxxxxxxxxxxxxxxxxxxxxxxx
+        if len(line) == 0: continue
+        elif line[0] == '#': continue
+        elif line[0] == '[':
+            currentSection = mscParseSectionName(line)
+        else:
+            tokens = mscParseTokens(line)
 
 def generateImage(matrix):
     pixWidth = 600
