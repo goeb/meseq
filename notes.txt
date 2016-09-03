@@ -1,0 +1,48 @@
+
+
+
+
+---------------- demo.msc ------------
+[init]
+actors host1="Host 1" excom="example.com"
+  
+[scenario]
+	host1 -> excom "seq=23"
+	host1 -> host1 "timer"   goto=timer_expiry
+	host1 -> excom "seq=24"  goto=a
+	excom -x host1 "ack=23"  goto=b
+	:a 
+	host1 -> excom "seq=25"  goto=b
+	excom -> host1 "ack=24"  goto=c
+	:b
+	:c
+	: 
+	:timer_expiry
+	
+	host1 -* other "create" actor="other host"
+	other -box "do something"
+	other -> host1 "done"
+	other +
+
+---------------- demo.msc ------------
+
+Syntax:
+init:
+	Actors  ::= 'actors' Actor +
+	Actor   ::= ActorId '=' Name
+	Name    ::= String
+	ActorId ::= Id
+
+scenario:
+	Line            ::= MessageExchange | GotoLabel | TerminateActor
+	MessageExchange ::= ActorId Action ActorId Options
+	Action          ::= '->' | '-x' | '-*'
+	GotoLabel       ::= ':' Id | ':'
+	TerminateActor  ::= ActorId '+'
+	Options         ::= Option +
+	Option          ::= OptionLabel | OptionOther
+	OptionLabel     ::= String | OptionOther
+	OptionOther     ::= Id '=' String
+
+
+
