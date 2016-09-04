@@ -522,9 +522,62 @@ def mscParse(data):
 
     return initialActors, lifeline
 
+class SequenceGraph:
+    def __init__(self):
+        self.labels = {}
+        self.rows = []
+        self.activeActors = []
+
+    def getNewRow(self):
+        row = []
+        for i in self.activeActors:
+            if i is None:
+                row.append(None)
+            elif i.type == NT_ACTOR:
+                node = Node(NT_ACTOR)
+                node.actorSrc = i.actorSrc
+                row.append(node)
+            else:
+                die('invalid active actor: %s' % i)
+        return row
+
+    def getIndex(self, actorid):
+        for i in range(self.activeActors):
+            if self.activeActors[i] is not None:
+                if self.activeActors[i].actorSrc == actorid:
+                    return i
+        return None
+
             
 def computeGraph(initialActors, data):
-    pass
+    graph = SequenceGraph()
+    # init first row, with initial actors
+    row1 = []
+    for a in initialActors:
+        node = Node(NT_ACTOR)
+        node.actorSrc = a
+        node.options['label'] = a
+        row1.append(node)
+        
+    graph.rows.append(row1)
+
+    # go through the lifeline
+    currentRow = graph.getNewRow()
+    for i in data:
+        if i.type == NT_MSG:
+            index = graph.getIndex(i.actorSrc)
+            if currentRow[index] is None:
+                currentRow[index] = i
+            else: # take the next row
+                graph.row.append(currentRow)
+                currentRow = graph.getNewRow()
+                currentRow[index] = i
+            # now do the recv part
+
+                
+                
+            
+        
 
 def generateImage(matrix):
     pixWidth = 600
