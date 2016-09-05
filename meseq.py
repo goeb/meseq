@@ -297,13 +297,14 @@ class Demo2(Diagram):
         self.cross(OTHER, TIME)
 
 # Node types
-NT_ACTOR     = 1
-NT_MSG       = 2
-NT_BOX       = 3
-NT_TERMINATE = 4
-NT_REF_NOTE  = 5
-NT_COLON     = 6
-NT_NONE      = 100
+NT_ACTOR     = 'actor'
+NT_MSG_SEND  = 'send-message'
+NT_MSG_RECV  = 'recv-message'
+NT_BOX       = 'box'
+NT_TERMINATE = 'terminate'
+NT_REF_NOTE  = 'ref_note'
+NT_COLON     = 'colon'
+NT_NONE      = 'none'
 class Node:
     def __init__(self, type):
         self.type = type
@@ -311,6 +312,9 @@ class Node:
         self.actorDest = None
         self.options = {}
         self.msgVerb = None
+
+    def __repr__(self):
+        return '<Node.%s.%s>' % (self.type, self.actorSrc)
 
     def setOption(self, key, value):
         self.options[key] = value
@@ -473,10 +477,12 @@ def tokenParseScenarioLine(line):
 
     # message 
     if line[1] in [ '->', '-*', '-x' ] :
-        node = Node(NT_MSG)
+        node = Node(NT_MSG_SEND)
+        node.actorSrc = line[0]
         node.msgVerb = line[1]
     elif line[1] == '-box':
         node = Node(NT_BOX)
+        node.actorSrc = line[0]
     else:
         die('Invalid message line: %s' % line)
 
@@ -528,21 +534,21 @@ class SequenceGraph:
         self.rows = []
         self.activeActors = []
 
+    def addActiveActor(self, actor):
+
+        for i in range(len(self.activeActors)):
+            if self.activeActors[i] is None:
+                self.activeActors[i] = actor
+                return
+
+        self.activeActors.append(actor)
+
+
     def getNewRow(self):
-        row = []
-        for i in self.activeActors:
-            if i is None:
-                row.append(None)
-            elif i.type == NT_ACTOR:
-                node = Node(NT_ACTOR)
-                node.actorSrc = i.actorSrc
-                row.append(node)
-            else:
-                die('invalid active actor: %s' % i)
-        return row
+        return [ None for row in self.activeActors ]
 
     def getIndex(self, actorid):
-        for i in range(self.activeActors):
+        for i in range(len(self.activeActors)):
             if self.activeActors[i] is not None:
                 if self.activeActors[i].actorSrc == actorid:
                     return i
@@ -552,27 +558,66 @@ class SequenceGraph:
 def computeGraph(initialActors, data):
     graph = SequenceGraph()
     # init first row, with initial actors
-    row1 = []
+
     for a in initialActors:
         node = Node(NT_ACTOR)
         node.actorSrc = a
         node.options['label'] = a
-        row1.append(node)
+        graph.addActiveActor(node)
         
-    graph.rows.append(row1)
 
+    queueOfPendingMessages = []
     # go through the lifeline
     currentRow = graph.getNewRow()
-    for i in data:
-        if i.type == NT_MSG:
-            index = graph.getIndex(i.actorSrc)
-            if currentRow[index] is None:
-                currentRow[index] = i
-            else: # take the next row
-                graph.row.append(currentRow)
+    for nod in data:
+        if nod.type == NT_MSG_SEND:
+
+            index = graph.getIndex(nod.actorSrc)
+
+            if index is None:
+                die('Cannot send message from actor: %s' % nod.actorSrc)
+
+            if currentRow[index] is not None:
+                # this row is busy, take the next one
+                graph.rows.append(currentRow)
                 currentRow = graph.getNewRow()
-                currentRow[index] = i
-            # now do the recv part
+
+            currentRow[index] = nod
+
+            # Do the recv part
+            recvNode = Node(NT_MSG_RECV)
+            recvNode.origin = nod
+            queueOfPendingMessages.append(recvNode)
+
+            # Look if some pending messages can be received
+            i = 0
+            while i < len(queueOfPendingMessages):
+                recvMsgNode = queueOfPendingMessages[i]
+                index = graph.getIndex(recvMsgNode.origin.actorDest)
+
+                if currentRow[index] is None:
+                    currentRow[index] = recvMsgNode
+                    L.pop(index)
+                else:
+                    i += 1
+
+        elif nod.type == NT_BOX:
+            pass
+
+        elif nod.type == NT_TERMINATE:
+            pass
+
+        elif nod.type == NT_COLON:
+            pass
+
+    graph.rows.append(currentRow)
+    # flush pending messages
+    while len(queueOfPendingMessages) > 0:
+        msg = queueOfPendingMessages.pop(0)
+        index = graph.getIndex(msg.origin.actorDest)
+        xxx
+
+
 
                 
                 
