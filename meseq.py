@@ -300,6 +300,8 @@ class Demo2(Diagram):
 NT_ACTOR     = 'actor'
 NT_MSG_SEND  = 'send-message'
 NT_MSG_RECV  = 'recv-message'
+NT_MSG_LOST  = 'lost-message'
+NT_CREATE    = 'create'
 NT_BOX       = 'box'
 NT_TERMINATE = 'terminate'
 NT_REF_NOTE  = 'ref_note'
@@ -311,7 +313,6 @@ class Node:
         self.actorSrc = None
         self.actorDest = None
         self.options = {}
-        self.msgVerb = None
 
     def __repr__(self):
         return '<Node.%s.%s>' % (self.type, self.actorSrc)
@@ -344,15 +345,13 @@ def mscConsolidateLines(data):
 
     for line in lines:
 
-        if concatenate: currentLine += line
-	else: currentLine = line
+        currentLine += line
 
         if len(line) and line[-1] == '\\':
             # concatenate the next line
-            concatenate = True
+            pass
         else:
             outLines.append(currentLine)
-            concatenate=  False
             currentLine = ''
 
     if len(line) and line[-1] == '\\':
@@ -476,16 +475,14 @@ def tokenParseScenarioLine(line):
         die('Invalid scenario line: %s' % line)
 
     # message 
-    if line[1] in [ '->', '-*', '-x' ] :
-        node = Node(NT_MSG_SEND)
-        node.actorSrc = line[0]
-        node.msgVerb = line[1]
-    elif line[1] == '-box':
-        node = Node(NT_BOX)
-        node.actorSrc = line[0]
+    if line[1] == '->': node = Node(NT_MSG_SEND)
+    elif line[1] == '-x': node = Node(NT_MSG_LOST)
+    elif line[1] == '-*': node = Node(NT_CREATE)
+    elif line[1] == '-box': node = Node(NT_BOX)
     else:
         die('Invalid message line: %s' % line)
 
+    node.actorSrc = line[0]
     node.actorDest = line[2]
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
@@ -570,7 +567,7 @@ def computeGraph(initialActors, data):
     # go through the lifeline
     currentRow = graph.getNewRow()
     for nod in data:
-        if nod.type == NT_MSG_SEND:
+        if nod.type in [ NT_MSG_SEND, NT_MSG_LOST ]:
 
             index = graph.getIndex(nod.actorSrc)
 
@@ -585,22 +582,38 @@ def computeGraph(initialActors, data):
             currentRow[index] = nod
 
             # Do the recv part
-            recvNode = Node(NT_MSG_RECV)
-            recvNode.origin = nod
-            queueOfPendingMessages.append(recvNode)
+            if nod.type == NT_MSG_SEND:
+                recvNode = Node(NT_MSG_RECV)
+                recvNode.origin = nod
+                queueOfPendingMessages.append(recvNode)
 
-            # Look if some pending messages can be received
-            i = 0
-            while i < len(queueOfPendingMessages):
-                recvMsgNode = queueOfPendingMessages[i]
-                index = graph.getIndex(recvMsgNode.origin.actorDest)
+        elif nod.type == NT_CREATE:
+            # TODO check if the arrow may conflict with other message on the row
+            # TODO check if id of the new one already exists
 
-                if currentRow[index] is None:
-                    currentRow[index] = recvMsgNode
-                    L.pop(index)
-                else:
-                    i += 1
+            index = graph.getIndex(nod.actorSrc)
+            if index is None:
+                die('Cannot create from actor: %s' % nod.actorSrc)
 
+            if currentRow[index] is not None:
+                # this row is busy, take the next one
+                graph.rows.append(currentRow)
+                currentRow = graph.getNewRow()
+
+            currentRow[index] = nod
+
+            # place new actor
+            newActor = Node(NT_ACTOR)
+            newActor.actorSrc = nod.actorDest
+            graph.addActiveActor(newActor)
+
+            index = graph.getIndex(newActor.actorSrc)
+            # grow also current row if needed
+            if index == len(currentRow):
+                currentRow.append(newActor)
+            else:
+                currentRow[index] = newActor
+            
         elif nod.type == NT_BOX:
             pass
 
@@ -610,17 +623,33 @@ def computeGraph(initialActors, data):
         elif nod.type == NT_COLON:
             pass
 
-    graph.rows.append(currentRow)
+        # Look if some pending messages can be received
+        i = 0
+        while i < len(queueOfPendingMessages):
+            recvMsgNode = queueOfPendingMessages[i]
+            index = graph.getIndex(recvMsgNode.origin.actorDest)
+
+            if currentRow[index] is None:
+                currentRow[index] = recvMsgNode
+                queueOfPendingMessages.pop(i)
+            else:
+                i += 1
+
     # flush pending messages
     while len(queueOfPendingMessages) > 0:
-        msg = queueOfPendingMessages.pop(0)
-        index = graph.getIndex(msg.origin.actorDest)
-        xxx
-
-
-
+        while i < len(queueOfPendingMessages):
+            msg = queueOfPendingMessages.pop[i]
+            index = graph.getIndex(msg.origin.actorDest)
+            if currentRow[index] is None:
+                currentRow[index] = msg
+                queueOfPendingMessages.pop(i)
+            else:
+                i += 1
                 
-                
+        graph.rows.append(currentRow)
+        currentRow = graph.getNewRow()
+        
+        
             
         
 
