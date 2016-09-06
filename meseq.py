@@ -269,12 +269,18 @@ class SequenceDiagram(object):
                     pass
 
                 elif node.type == NT_ACTOR:
-                    self.boxWithLifeLine(x, y, node.actorSrc)
+                    self.box(x, y, node.actorSrc)
 
                 elif node.type == NT_MSG_SEND:
-                    x1 = 2*STEP + node.arrival.x * STEP * 3
-                    y1 = 2*STEP + STEP * node.arrival.y
-                    self.arrow(x, y, x1, y1, node.options['label'])
+                    if node.actorSrc == node.actorDest:
+                        # message to self
+                        y1 = 2*STEP + STEP * node.arrival.y
+                        self.messageToSelf(x, y, y1, node.options['label'])
+
+                    else:
+                        x1 = 2*STEP + node.arrival.x * STEP * 3
+                        y1 = 2*STEP + STEP * node.arrival.y
+                        self.arrow(x, y, x1, y1, node.options['label'])
 
                 elif node.type == NT_MSG_LOST:
                     xArrival = self.matrix.getIndex(node.actorDest)
@@ -295,6 +301,13 @@ class SequenceDiagram(object):
 
                 else:
                     pass
+
+                if node is not None:
+                    if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE ]:
+                        self.lifeLine(x, y-STEP/2, y+STEP/2)
+                    elif node.type == NT_TERMINATE:
+                        self.lifeLine(x, y-STEP/2, y)
+
 
 class Demo2(SequenceDiagram):
     def draw(self):
@@ -351,7 +364,8 @@ NT_BOX       = 'box'
 NT_TERMINATE = 'terminate'
 NT_REF_NOTE  = 'ref_note'
 NT_COLON     = 'colon'
-NT_NONE      = 'none'
+NT_LIFELINE  = 'lifeline'
+
 class Node:
     def __init__(self, type):
         self.type = type
@@ -360,7 +374,7 @@ class Node:
         self.options = { 'label': '' }
 
     def __repr__(self):
-        return '<Node.%s.%s>' % (self.type, self.actorSrc)
+        return '<%s:%s->%s>' % (self.type, self.actorSrc, self.actorDest)
 
     def setOption(self, key, value):
         self.options[key] = value
@@ -610,6 +624,15 @@ class SequenceGraph:
         """Return a reference to the last row."""
         return self.rows[-1]
 
+    def updateLifeline(self):
+        """Update last row with lifelines."""
+        row = self.rows[-1]
+        for i in range(len(self.activeActors)):
+            if self.activeActors[i] is not None:
+                if row[i] is None:
+                    row[i] = Node(NT_LIFELINE)
+
+
     def place(self, node, actor = None):
         currentRow = self.getCurrentRow()
         index = self.getIndex(node.actorSrc)
@@ -622,6 +645,7 @@ class SequenceGraph:
 
         if currentRow[index] is not None:
             # this row is busy, take the next one
+            self.updateLifeline()
             self.rows.append(self.getNewRow())
             currentRow = self.getCurrentRow()
 
