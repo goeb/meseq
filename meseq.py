@@ -372,6 +372,7 @@ class Node:
         self.actorSrc = None
         self.actorDest = None
         self.options = { 'label': '' }
+        self.id = None # used for 'goto'
 
     def __repr__(self):
         return '<%s:%s->%s>' % (self.type, self.actorSrc, self.actorDest)
@@ -590,6 +591,10 @@ class SequenceGraph:
         self.rows = []
         self.activeActors = []
         self.pendingMessages = []
+        self.gotoLabels = {}
+
+    def setGotoLabel(self, id):
+        self.gotoLabels[id] = len(self.rows) - 1 # index of the last row (== current row)
 
     def addActiveActor(self, actor):
 
@@ -656,11 +661,26 @@ class SequenceGraph:
     def queue(self, node):
         self.pendingMessages.append(node)
 
-    def placePending(self):
+    def placePending(self, flushAll = False):
         i = 0
         while i < len(self.pendingMessages):
-            self.place(self.pendingMessages[i])
-            self.pendingMessages.pop(i)
+            node = self.pendingMessages[i]
+
+            if node.options.has_key('goto'):
+                gotoId = node.options['goto']
+                # in the past, so the node can be placed
+                if self.gotoLabels.has_key(gotoId): gotoId = None
+
+            else:
+                gotoId = None
+
+            if flushAll or gotoId is None:
+                # place the node immediately
+                self.place(node)
+                self.pendingMessages.pop(i)
+            else:
+                i += 1 # keep it for later
+
             
 def computeGraph(initialActors, data):
     graph = SequenceGraph()
@@ -679,6 +699,8 @@ def computeGraph(initialActors, data):
             if nod.type == NT_MSG_SEND:
                 recvNode = Node(NT_MSG_RECV)
                 recvNode.actorSrc = nod.actorDest
+                if nod.options.has_key('goto'):
+                    recvNode.options['goto'] = nod.options['goto']
                 nod.arrival = recvNode
                 graph.queue(recvNode)
 
@@ -703,13 +725,13 @@ def computeGraph(initialActors, data):
             graph.place(nod)
 
         elif nod.type == NT_COLON:
-            pass
+            graph.setGotoLabel(nod.id)
 
         # Look if some pending messages can be received
         graph.placePending()
 
     # flush pending messages
-    graph.placePending()
+    graph.placePending(flushAll=True)
         
     return graph
             
