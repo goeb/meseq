@@ -16,10 +16,14 @@ ARROW_LOST   = 1 << 4
 ARROW_HEAD_LEFT = 1
 ARROW_HEAD_RIGHT = 2
 
-class Diagram(object):
+class SequenceDiagram(object):
 
-    def __init__(self, filename, nActors, nMessages, pixWidth):
+    def __init__(self, filename, matrix, pixWidth):
         global STEP
+
+        self.matrix = matrix
+        nActors = len(matrix.rows[-1])
+        nMessages = len(matrix.rows)
 
         nxTiles = 2 + 4 * nActors
         STEP = 1.0 * pixWidth / nxTiles
@@ -40,7 +44,7 @@ class Diagram(object):
         cr.set_source_rgb(1, 1, 1)
         cr.fill()
 
-        self.draw_dest()
+        self.draw()
 
         cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
         cr.set_source_rgb(0, 0, 0)
@@ -250,9 +254,50 @@ class Diagram(object):
         # set text
         self.text(x0 + STEP*1.5, y0+STEP*0.5, text)
 
+    def draw(self):
 
-class Demo2(Diagram):
-    def draw_dest(self):
+        self.init()
+
+        y = STEP
+        for row in self.matrix.rows:
+            y += STEP
+            for i in range(len(row)):
+                x = STEP + i * STEP * 2
+                node = row[i]
+                if node is None:
+                    pass
+                elif node.type == NT_ACTOR:
+                    self.boxWithLifeLine(x, y, node.actorSrc)
+
+                elif node.type == NT_MSG_SEND:
+                    x1 = STEP + node.arrival.x * STEP * 2
+                    y1 = y + STEP * node.arrival.y
+                    self.arrow(x, y, x1, y1, node.options['label'])
+
+                elif node.type == NT_MSG_LOST:
+                    xArrival = self.matrix.getIndex(node.actorDest)
+                    x1 = STEP + xArrival * STEP * 2
+                    y1 = y
+                    self.arrow(x, y, x1, y1, node.options['label'], ARROW_LOST)
+
+                elif node.type == NT_BOX:
+                    self.boxWithRoundSides(x, y, node.options['label'])
+
+                elif node.type == NT_TERMINATE:
+                    self.cross(x, y)
+
+                elif node.type == NT_CREATE:
+                    x1 = node.arrival.x * STEP * 2
+                    y1 = y + STEP * node.arrival.y
+                    self.arrow(x, y, x1, y1, node.options['label'])
+                    x += STEP
+                    self.box(x, y, node.arrival.options['label'])
+
+                else:
+                    pass
+
+class Demo2(SequenceDiagram):
+    def draw(self):
 
         self.init()
 
@@ -312,7 +357,7 @@ class Node:
         self.type = type
         self.actorSrc = None
         self.actorDest = None
-        self.options = {}
+        self.options = { 'label': '' }
 
     def __repr__(self):
         return '<Node.%s.%s>' % (self.type, self.actorSrc)
@@ -486,7 +531,7 @@ def tokenParseScenarioLine(line):
     node.actorDest = line[2]
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
-    node.options = options
+    node.options.update(options)
 
     return node
 
@@ -581,6 +626,8 @@ class SequenceGraph:
             currentRow = self.getCurrentRow()
 
         currentRow[index] = node
+        node.x = index
+        node.y = len(self.rows) - 1
         
     def queue(self, node):
         self.pendingMessages.append(node)
@@ -606,6 +653,7 @@ def computeGraph(initialActors, data):
             if nod.type == NT_MSG_SEND:
                 recvNode = Node(NT_MSG_RECV)
                 recvNode.actorSrc = nod.actorDest
+                nod.arrival = recvNode
                 graph.queue(recvNode)
 
         elif nod.type == NT_CREATE:
@@ -617,6 +665,7 @@ def computeGraph(initialActors, data):
             # place new actor
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
+            nod.arrival = newActor
             graph.addActiveActor(newActor)
 
             graph.place(newActor)
@@ -642,9 +691,7 @@ def computeGraph(initialActors, data):
 
 def generateImage(matrix):
     pixWidth = 600
-    print "demo2"
-    Demo2('demo2', 3, 10, pixWidth)
-    pass
+    SequenceDiagram('SequenceDiagram', matrix, pixWidth)
 
 def main():
     args = parseCommandLine()
