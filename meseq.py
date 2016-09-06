@@ -25,10 +25,10 @@ class SequenceDiagram(object):
         nActors = len(matrix.rows[-1])
         nMessages = len(matrix.rows)
 
-        nxTiles = 2 + 4 * nActors
+        nxTiles = 3 * nActors + 1
         STEP = 1.0 * pixWidth / nxTiles
         width = pixWidth;
-        nyTiles = nMessages * 2
+        nyTiles = nMessages + 2
         height = nyTiles * STEP
 
         print "width=", width, ", height=", height, ", STEP=", STEP
@@ -258,7 +258,7 @@ class SequenceDiagram(object):
 
         self.init()
 
-        y = STEP
+        y = STEP/2
         for row in self.matrix.rows:
             y += STEP
             for i in range(len(row)):
@@ -375,7 +375,7 @@ class Node:
         self.id = None # used for 'goto'
 
     def __repr__(self):
-        return '<%s:%s->%s>' % (self.type, self.actorSrc, self.actorDest)
+        return '<%s:%s->%s(%s)>' % (self.type, self.actorSrc, self.actorDest, self.options['label'])
 
     def setOption(self, key, value):
         self.options[key] = value
@@ -512,6 +512,9 @@ def tokenParseKeyEqualValue(line):
             token2 = tok
         else:
             die('unexpected error in line: %s' % originalLine)
+
+    if token2 is not None:
+        options['label'] = token2
 
     return options
 
@@ -746,10 +749,12 @@ def main():
     #inputData = readInput(args.input)
     inputData = """
 [init]
-actors host1="Host 1" excom="example.com"
+actors host1="Host 1" excom="example.com" A=A B=B
 
 [scenario]
     host1 -> excom "seq=23"
+    A -> B "hello"
+    A -> B "hello2"
     host1 -> host1 "timer"   goto=timer_expiry
     host1 -> excom "seq=24"  goto=a
     excom -x host1 "ack=23"  goto=b x = c fff = erer
