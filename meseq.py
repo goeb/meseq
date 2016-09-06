@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+# coding: utf-8
 import cairo
 import math
 import sys
@@ -262,21 +262,23 @@ class SequenceDiagram(object):
         for row in self.matrix.rows:
             y += STEP
             for i in range(len(row)):
-                x = STEP + i * STEP * 2
+                x = 2*STEP + i * STEP * 3
                 node = row[i]
+
                 if node is None:
                     pass
+
                 elif node.type == NT_ACTOR:
                     self.boxWithLifeLine(x, y, node.actorSrc)
 
                 elif node.type == NT_MSG_SEND:
-                    x1 = STEP + node.arrival.x * STEP * 2
-                    y1 = y + STEP * node.arrival.y
+                    x1 = 2*STEP + node.arrival.x * STEP * 3
+                    y1 = 2*STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
 
                 elif node.type == NT_MSG_LOST:
                     xArrival = self.matrix.getIndex(node.actorDest)
-                    x1 = STEP + xArrival * STEP * 2
+                    x1 = 2 * STEP + xArrival * STEP * 3
                     y1 = y
                     self.arrow(x, y, x1, y1, node.options['label'], ARROW_LOST)
 
@@ -287,11 +289,9 @@ class SequenceDiagram(object):
                     self.cross(x, y)
 
                 elif node.type == NT_CREATE:
-                    x1 = node.arrival.x * STEP * 2
-                    y1 = y + STEP * node.arrival.y
+                    x1 = STEP + node.arrival.x * STEP * 3
+                    y1 = 2 * STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
-                    x += STEP
-                    self.box(x, y, node.arrival.options['label'])
 
                 else:
                     pass
@@ -633,8 +633,10 @@ class SequenceGraph:
         self.pendingMessages.append(node)
 
     def placePending(self):
-        for node in self.pendingMessages:
-            self.place(node)
+        i = 0
+        while i < len(self.pendingMessages):
+            self.place(self.pendingMessages[i])
+            self.pendingMessages.pop(i)
             
 def computeGraph(initialActors, data):
     graph = SequenceGraph()
