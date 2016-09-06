@@ -530,6 +530,7 @@ class SequenceGraph:
         self.labels = {}
         self.rows = []
         self.activeActors = []
+        self.pendingMessages = []
 
     def addActiveActor(self, actor):
 
@@ -551,105 +552,91 @@ class SequenceGraph:
                     return i
         return None
 
+    def init(self, initialActors):
+        for a in initialActors:
+            node = Node(NT_ACTOR)
+            node.actorSrc = a
+            node.options['label'] = a
+            self.addActiveActor(node)
+
+        self.rows = [ self.activeActors[:] ]
+
+    def getCurrentRow(self):
+        """Return a reference to the last row."""
+        return self.rows[-1]
+
+    def place(self, node, actor = None):
+        currentRow = self.getCurrentRow()
+        index = self.getIndex(node.actorSrc)
+        if index is None:
+            die('Cannot place on unknown actor: %s' % node.actorSrc)
+
+        if index == len(currentRow):
+            # case of a newly create actor
+            currentRow.append(None)
+
+        if currentRow[index] is not None:
+            # this row is busy, take the next one
+            self.rows.append(self.getNewRow())
+            currentRow = self.getCurrentRow()
+
+        currentRow[index] = node
+        
+    def queue(self, node):
+        self.pendingMessages.append(node)
+
+    def placePending(self):
+        for node in self.pendingMessages:
+            self.place(node)
             
 def computeGraph(initialActors, data):
     graph = SequenceGraph()
     # init first row, with initial actors
 
-    for a in initialActors:
-        node = Node(NT_ACTOR)
-        node.actorSrc = a
-        node.options['label'] = a
-        graph.addActiveActor(node)
         
+    graph.init(initialActors)
 
-    queueOfPendingMessages = []
     # go through the lifeline
-    currentRow = graph.getNewRow()
     for nod in data:
         if nod.type in [ NT_MSG_SEND, NT_MSG_LOST ]:
 
-            index = graph.getIndex(nod.actorSrc)
-
-            if index is None:
-                die('Cannot send message from actor: %s' % nod.actorSrc)
-
-            if currentRow[index] is not None:
-                # this row is busy, take the next one
-                graph.rows.append(currentRow)
-                currentRow = graph.getNewRow()
-
-            currentRow[index] = nod
+            graph.place(nod)
 
             # Do the recv part
             if nod.type == NT_MSG_SEND:
                 recvNode = Node(NT_MSG_RECV)
-                recvNode.origin = nod
-                queueOfPendingMessages.append(recvNode)
+                recvNode.actorSrc = nod.actorDest
+                graph.queue(recvNode)
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
             # TODO check if id of the new one already exists
 
-            index = graph.getIndex(nod.actorSrc)
-            if index is None:
-                die('Cannot create from actor: %s' % nod.actorSrc)
-
-            if currentRow[index] is not None:
-                # this row is busy, take the next one
-                graph.rows.append(currentRow)
-                currentRow = graph.getNewRow()
-
-            currentRow[index] = nod
+            graph.place(nod)
 
             # place new actor
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
             graph.addActiveActor(newActor)
 
-            index = graph.getIndex(newActor.actorSrc)
-            # grow also current row if needed
-            if index == len(currentRow):
-                currentRow.append(newActor)
-            else:
-                currentRow[index] = newActor
+            graph.place(newActor)
             
         elif nod.type == NT_BOX:
-            pass
+            graph.place(nod)
 
         elif nod.type == NT_TERMINATE:
-            pass
+            graph.place(nod)
 
         elif nod.type == NT_COLON:
             pass
 
         # Look if some pending messages can be received
-        i = 0
-        while i < len(queueOfPendingMessages):
-            recvMsgNode = queueOfPendingMessages[i]
-            index = graph.getIndex(recvMsgNode.origin.actorDest)
-
-            if currentRow[index] is None:
-                currentRow[index] = recvMsgNode
-                queueOfPendingMessages.pop(i)
-            else:
-                i += 1
+        graph.placePending()
 
     # flush pending messages
-    while len(queueOfPendingMessages) > 0:
-        while i < len(queueOfPendingMessages):
-            msg = queueOfPendingMessages.pop[i]
-            index = graph.getIndex(msg.origin.actorDest)
-            if currentRow[index] is None:
-                currentRow[index] = msg
-                queueOfPendingMessages.pop(i)
-            else:
-                i += 1
-                
-        graph.rows.append(currentRow)
-        currentRow = graph.getNewRow()
+    graph.placePending()
         
-        
+    return graph
             
         
 
@@ -689,6 +676,7 @@ actors host1="Host 1" excom="example.com"
     print 'initialActors=', initialActors
     print 'data=', data
     matrix = computeGraph(initialActors, data)
+    print "matrix=", matrix.rows
     generateImage(matrix)
 
 if __name__ == '__main__':
