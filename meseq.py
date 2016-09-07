@@ -362,6 +362,7 @@ NT_MSG_RECV  = 'recv-message'
 NT_MSG_LOST  = 'lost-message'
 NT_CREATE    = 'create'
 NT_BOX       = 'box'
+NT_BIDIRECTIONAL = "bidirectional"
 NT_TERMINATE = 'terminate'
 NT_REF_NOTE  = 'ref_note'
 NT_COLON     = 'colon'
@@ -502,6 +503,9 @@ def tokenParseActors(tokens):
             actors[actorid] = actorid
             actorid = token
 
+    if actorid is not None:
+        actors[actorid] = actorid
+
     return actors
 
 
@@ -577,6 +581,7 @@ def tokenParseScenarioLine(line):
         node = Node(NT_MSG_LOST)
         src, dest = dest, src
     elif line[1] == '-*': node = Node(NT_CREATE)
+    elif line[1] == '<=>': node = Node(NT_BIDIRECTIONAL)
     elif line[1] == '-box': node = Node(NT_BOX)
     else:
         die('Invalid message line: %s' % line)
@@ -648,7 +653,7 @@ class SequenceGraph:
         for i in range(len(self.activeActors)):
             if self.activeActors[i] is not None:
                 if self.activeActors[i].actorSrc == actorId:
-                    self.activeActors.pop(i)
+                    self.activeActors[i] = None
                     return
 
 
@@ -749,6 +754,9 @@ def computeGraph(initialActors, data):
                     recvNode.options['goto'] = nod.options['goto']
                 nod.arrival = recvNode
                 graph.queue(recvNode)
+
+        elif nod.type == NT_BIDIRECTIONAL:
+            otherNode
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
