@@ -3,6 +3,7 @@
 import cairo
 import math
 import sys
+import os
 
 
 STEP = None
@@ -608,6 +609,13 @@ class SequenceGraph:
 
         self.activeActors.append(actor)
 
+    def removeActor(self, actorId):
+        for i in range(len(self.activeActors)):
+            if self.activeActors[i] is not None:
+                if self.activeActors[i].actorSrc == actorId:
+                    self.activeActors.pop(i)
+                    return
+
 
     def getNewRow(self):
         return [ None for row in self.activeActors ]
@@ -726,6 +734,7 @@ def computeGraph(initialActors, data):
 
         elif nod.type == NT_TERMINATE:
             graph.place(nod)
+            graph.removeActor(nod.actorSrc)
 
         elif nod.type == NT_COLON:
             graph.setGotoLabel(nod.id)
@@ -740,44 +749,25 @@ def computeGraph(initialActors, data):
             
         
 
-def generateImage(matrix):
+def generateImage(name, matrix):
     pixWidth = 600
-    SequenceDiagram('SequenceDiagram', matrix, pixWidth)
+    SequenceDiagram(name, matrix, pixWidth)
 
 def main():
-    args = parseCommandLine()
-    #inputData = readInput(args.input)
-    inputData = """
-[init]
-actors host1="Host 1" excom="example.com" A=A B=B
+    if len(sys.argv) != 2:
+        print "Usage: meseq.py <file>"
+        sys.exit(1)
 
-[scenario]
-    host1 -> excom "seq=23"
-    A -> B "hello"
-    A -> B "hello2"
-    host1 -> host1 "timer"   goto=timer_expiry
-    host1 -> excom "seq=24"  goto=a
-    excom -x host1 "ack=23"  goto=b x = c fff = erer
-    :a
-    host1 -> excom "seq=25"  goto=b
-    excom -> host1 "ack=24"  goto=c
-    :b
-    :c
-    :
-    :timer_expiry
+    filename = sys.argv[1]
+    f = open(filename)
+    inputData = f.read()
 
-    host1 -* other "create" actor="other host"
-    other -box "do something"
-    other -> host1 "done"
-    other +
-
-    """
     initialActors, data = mscParse(inputData)
     print 'initialActors=', initialActors
     print 'data=', data
     matrix = computeGraph(initialActors, data)
     print "matrix=", matrix.rows
-    generateImage(matrix)
+    generateImage(os.path.basename(filename), matrix)
 
 if __name__ == '__main__':
     main()

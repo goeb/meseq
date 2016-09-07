@@ -1,0 +1,28 @@
+[init]
+actors host1="Host 1" excom="example.com" 
+
+[scenario]
+    host1 -> excom "seq=23"
+    host1 -> host1 "timer"   goto=timer_expiry
+    host1 -> excom "seq=24"  goto=a
+    excom -x host1 "ack=23"  goto=b x = c fff = erer
+    :a
+    host1 -> excom "seq=25"  goto=b
+    excom -> host1 "ack=24"  goto=c
+    :b
+    :c
+    :
+    :timer_expiry
+
+    host1 -* other "create" actor="other host"
+    other -box "do something"
+    other -> host1 "done"
+    other +
+
+	host1 -> excom "pause"
+    host1 -* other2 "create" actor="other host"
+    other2 -box "do something"
+    other2 -> host1 "done"
+    other2 +
+
+
