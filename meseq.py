@@ -539,15 +539,24 @@ def tokenParseScenarioLine(line):
         die('Invalid scenario line: %s' % line)
 
     # message 
+    src = line[0]
+    dest = line[2]
     if line[1] == '->': node = Node(NT_MSG_SEND)
+    elif line[1] == '<-':
+        node = Node(NT_MSG_SEND)
+        # reverse src and dest
+        src, dest = dest, src
     elif line[1] == '-x': node = Node(NT_MSG_LOST)
+    elif line[1] == 'x-':
+        node = Node(NT_MSG_LOST)
+        src, dest = dest, src
     elif line[1] == '-*': node = Node(NT_CREATE)
     elif line[1] == '-box': node = Node(NT_BOX)
     else:
         die('Invalid message line: %s' % line)
 
-    node.actorSrc = line[0]
-    node.actorDest = line[2]
+    node.actorSrc = src
+    node.actorDest = dest
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
     node.options.update(options)

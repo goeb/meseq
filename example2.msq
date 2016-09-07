@@ -5,10 +5,10 @@ actors host1="Host 1" excom="example.com"
     host1 -> excom "seq=23"
     host1 -> host1 "timer"   goto=timer_expiry
     host1 -> excom "seq=24"  goto=a
-    excom -x host1 "ack=23"  goto=b x = c fff = erer
+    host1 x- excom "ack=23"  goto=b x = c fff = erer
     :a
     host1 -> excom "seq=25"  goto=b
-    excom -> host1 "ack=24"  goto=c
+    host1 <- excom "ack=24"  goto=c
     :b
     :c
     :
