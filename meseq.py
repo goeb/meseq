@@ -14,8 +14,9 @@ ALIGN_CENTER = 1 << 2
 ARROW_NORMAL = 1 << 3
 ARROW_LOST   = 1 << 4
 
-ARROW_HEAD_LEFT = 1
+ARROW_HEAD_LEFT  = 1
 ARROW_HEAD_RIGHT = 2
+ARROW_HEAD_HUGE  = 3
 
 class SequenceDiagram(object):
 
@@ -163,6 +164,33 @@ class SequenceDiagram(object):
         self.cr.move_to(xRef, yRef)
         self.cr.show_text(text)
 
+    def bidirectional(self, x0, y0, x1, text):
+        """Draw a massive bidirectional arrow.
+        """
+        if x1 == x0:
+            print "error, bidirectional"
+            return
+
+        if x1 < x0:
+            x0, x1 = x1, x0 # swap variables
+        
+        self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
+        self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
+
+        # the lines between the heads
+        self.cr.move_to(x0+STEP/2, y0-STEP/2)
+        self.cr.line_to(x1-STEP/2, y0-STEP/2)
+        self.cr.stroke()
+
+        self.cr.move_to(x0+STEP/2, y0+STEP/2)
+        self.cr.line_to(x1-STEP/2, y0+STEP/2)
+        self.cr.stroke()
+
+        # the text
+        x = x0 +(x1-x0) / 2
+        self.text(x, y0, text)
+
+
     def arrow(self, x0, y0, x1, y1, text, flags = ARROW_NORMAL):
 
         if x1 == x0:
@@ -204,7 +232,7 @@ class SequenceDiagram(object):
             # head of the arrow
             if sign > 0: flag = ARROW_HEAD_RIGHT
             else: flag = ARROW_HEAD_LEFT
-            self.arrowHead(xHead, yHead, flag)
+            self.arrowHead(xHead, yHead, [flag])
         elif flags == ARROW_LOST:
             # draw an 'x'
             self.cross(xHead, yHead)
@@ -225,10 +253,19 @@ class SequenceDiagram(object):
         self.arrow(x0, y0, x1, y1, text)
 
     def arrowHead(self, x, y, flags):
-        arrowSize = STEP/4 # hypothenuse
-        hAngle = math.pi / 6
 
-        if flags == ARROW_HEAD_RIGHT: sign = 1
+        if ARROW_HEAD_HUGE in flags:
+            # huge arrow head
+            arrowSize = STEP
+            hAngle = math.pi / 4
+        else:
+            # regular size and angle
+            arrowSize = STEP/4 # hypothenuse
+            hAngle = math.pi / 6
+
+
+
+        if ARROW_HEAD_RIGHT in flags: sign = 1
         else: sign = -1
 
         x2 = x - arrowSize * math.cos(hAngle) * sign
@@ -250,7 +287,7 @@ class SequenceDiagram(object):
         self.cr.line_to(x0 + STEP, y1)
         self.cr.line_to(x0, y1)
 
-        self.arrowHead(x0, y1, ARROW_HEAD_LEFT)
+        self.arrowHead(x0, y1, [ARROW_HEAD_LEFT])
 
         # set text
         self.text(x0 + STEP*1.5, y0+STEP*0.5, text)
@@ -295,6 +332,10 @@ class SequenceDiagram(object):
                 elif node.type == NT_TERMINATE:
                     self.cross(x, y)
 
+                elif node.type == NT_BIDIRECTIONAL:
+                    x1 = 2*STEP + node.arrival.x * STEP * 3
+                    self.bidirectional(x, y, x1, node.options['label'])
+
                 elif node.type == NT_CREATE:
                     x1 = STEP + node.arrival.x * STEP * 3
                     y1 = STEP + STEP * node.arrival.y
@@ -304,7 +345,7 @@ class SequenceDiagram(object):
                     pass
 
                 if node is not None:
-                    if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE ]:
+                    if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
                         self.lifeLine(x, y-STEP/2, y+STEP/2)
                     elif node.type == NT_TERMINATE:
                         self.lifeLine(x, y-STEP/2, y)
@@ -581,7 +622,7 @@ def tokenParseScenarioLine(line):
         node = Node(NT_MSG_LOST)
         src, dest = dest, src
     elif line[1] == '-*': node = Node(NT_CREATE)
-    elif line[1] == '<=>': node = Node(NT_BIDIRECTIONAL)
+    elif line[1] == '<->': node = Node(NT_BIDIRECTIONAL)
     elif line[1] == '-box': node = Node(NT_BOX)
     else:
         die('Invalid message line: %s' % line)
@@ -691,6 +732,47 @@ class SequenceGraph:
                 if row[i] is None:
                     row[i] = Node(NT_LIFELINE)
 
+    def addNewRow(self):
+        self.updateLifeline()
+        self.rows.append(self.getNewRow())
+        currentRow = self.getCurrentRow()
+        return currentRow
+
+    def place2(self, node1, node2):
+        """Place 2 nodes on the same row.
+        """
+        currentRow = self.getCurrentRow()
+        index1 = self.getIndex(node1.actorSrc)
+        index2 = self.getIndex(node2.actorSrc)
+
+        if index1 is None:
+            die('place2: Cannot place on unknown actor: %s' % node1.actorSrc)
+
+        if index2 is None:
+            die('place2: Cannot place on unknown actor: %s' % node2.actorSrc)
+
+        if index1 == len(currentRow):
+            # case of a newly create actor
+            currentRow.append(None)
+
+        if index2 == len(currentRow):
+            # case of a newly create actor
+            currentRow.append(None)
+
+        if currentRow[index1] is not None:
+            # this row is busy, take the next one
+            currentRow = self.addNewRow()
+
+        if currentRow[index2] is not None:
+            # this row is busy, take the next one
+            currentRow = self.addNewRow()
+
+        currentRow[index1] = node1
+        currentRow[index2] = node2
+        node1.x = index1
+        node2.x = index2
+        node1.y = node2.y = len(self.rows) - 1
+
 
     def place(self, node, preventTouch = False):
         currentRow = self.getCurrentRow()
@@ -704,9 +786,7 @@ class SequenceGraph:
 
         if currentRow[index] is not None:
             # this row is busy, take the next one
-            self.updateLifeline()
-            self.rows.append(self.getNewRow())
-            currentRow = self.getCurrentRow()
+            currentRow = self.addNewRow()
 
         if preventTouch:
             # check if the row just above has a NT_BOX or NT_ACTOR
@@ -714,9 +794,7 @@ class SequenceGraph:
                 nodeAbove =  self.rows[-2][index]
                 if nodeAbove is not None and nodeAbove.type in [ NT_BOX, NT_ACTOR ]:
                     # add a row
-                    self.updateLifeline()
-                    self.rows.append(self.getNewRow())
-                    currentRow = self.getCurrentRow()
+                    currentRow = self.addNewRow()
 
         currentRow[index] = node
         node.x = index
@@ -769,7 +847,10 @@ def computeGraph(initialActors, data):
                 graph.queue(recvNode)
 
         elif nod.type == NT_BIDIRECTIONAL:
-            otherNode
+            otherNode = Node(NT_MSG_RECV)
+            otherNode.actorSrc = nod.actorDest
+            nod.arrival = otherNode
+            graph.place2(nod, otherNode)
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
@@ -801,13 +882,17 @@ def computeGraph(initialActors, data):
 
         elif nod.type == NT_COLON:
             graph.setGotoLabel(nod.id)
+            if nod.id is None:
+                # insert a row
+                graph.addNewRow()
 
         # Look if some pending messages can be received
         graph.placePending()
 
     # flush pending messages
     graph.placePending(flushAll=True)
-        
+    graph.updateLifeline()
+
     return graph
             
         

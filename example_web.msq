@@ -1,0 +1,30 @@
+[init]
+actors w3client proxy w3server
+
+[scenario]
+    w3client   ->   proxy   CONNECT
+    w3client   <-   proxy   OK
+	w3client   ->   proxy   bytes
+					proxy            ->   w3server bytes
+	:
+	w3client  <->                         w3server "TLS Handshake, what follows is ciphered"
+	:
+	:
+	w3client  ->    proxy   "GET /index.html"
+                    proxy            ->   w3server "GET /index.html"
+                    proxy            <-   w3server "200, index.html"
+    w3client  <-    proxy   "200, index.html"
+
+
+	w3client  ->    proxy   "POST /work.cgi"
+                    proxy            ->   w3server "POST /work.cgi"
+                                          w3server                  -*  worker.cgi
+                                                                        worker.cgi -box work...
+                                          w3server                  <-  worker.cgi "ok, result"
+                                                                        worker.cgi +
+                    proxy            <-   w3server "ok, result"
+    w3client  <-    proxy "ok, result"
+                                                                        
+
+
+
