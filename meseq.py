@@ -587,7 +587,10 @@ def tokenParseScenarioLine(line):
         die('Invalid message line: %s' % line)
 
     node.actorSrc = src
-    node.actorDest = dest
+    if node.type != NT_BOX:
+        node.actorDest = dest
+    else:
+        node.options['label'] = dest
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
     node.options.update(options)
@@ -689,7 +692,7 @@ class SequenceGraph:
                     row[i] = Node(NT_LIFELINE)
 
 
-    def place(self, node, actor = None):
+    def place(self, node, preventTouch = False):
         currentRow = self.getCurrentRow()
         index = self.getIndex(node.actorSrc)
         if index is None:
@@ -704,6 +707,16 @@ class SequenceGraph:
             self.updateLifeline()
             self.rows.append(self.getNewRow())
             currentRow = self.getCurrentRow()
+
+        if preventTouch:
+            # check if the row just above has a NT_BOX or NT_ACTOR
+            if len(self.rows) > 1 and len(self.rows[-2]) > index:
+                nodeAbove =  self.rows[-2][index]
+                if nodeAbove is not None and nodeAbove.type in [ NT_BOX, NT_ACTOR ]:
+                    # add a row
+                    self.updateLifeline()
+                    self.rows.append(self.getNewRow())
+                    currentRow = self.getCurrentRow()
 
         currentRow[index] = node
         node.x = index
@@ -778,7 +791,9 @@ def computeGraph(initialActors, data):
             graph.place(newActor)
             
         elif nod.type == NT_BOX:
-            graph.place(nod)
+            # insert a row if previous node is a NT_BOX or NT_ACTOR
+            # so that they do not touch each other
+            graph.place(nod, preventTouch=True)
 
         elif nod.type == NT_TERMINATE:
             graph.place(nod)
