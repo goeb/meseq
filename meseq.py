@@ -270,7 +270,7 @@ class SequenceDiagram(object):
                     pass
 
                 elif node.type == NT_ACTOR:
-                    self.box(x, y, node.actorSrc)
+                    self.box(x, y, node.options['label'])
 
                 elif node.type == NT_MSG_SEND:
                     if node.actorSrc == node.actorDest:
@@ -479,6 +479,32 @@ def mscParseTokens(line):
     
     return tokens
 
+def tokenParseActors(tokens):
+    """Expected tokens:
+    actorid [ '=' actorLabel ] ...
+    """
+    actors = {}
+    actorid = None
+    gotEqual = False
+    for token in tokens:
+        if token == '=':
+            if actorid is None:
+                die("tokenParseActors Invalid = without actorid: %s" % tokens)
+            gotEqual = True
+        elif gotEqual:
+            actors[actorid] = token
+            actorid = None
+            gotEqual = False
+        elif actorid is None:
+            actorid = token
+        else:
+            # previous token was actor id without label
+            actors[actorid] = actorid
+            actorid = token
+
+    return actors
+
+
 def tokenParseKeyEqualValue(line):
     token1 = None
     token2 = None
@@ -580,10 +606,10 @@ def mscParse(data):
             tokens = mscParseTokens(line)
             dataTokens[currentSection].append(tokens)
 
-    initialActors = []
+    initialActors = {}
     for line in dataTokens['init']:
         if line[0] == 'actors':
-            initialActors = tokenParseKeyEqualValue(line[1:])
+            initialActors = tokenParseActors(line[1:])
             
         else:
             die('Invalid declaration in init: %s' % line)
@@ -640,7 +666,7 @@ class SequenceGraph:
         for a in initialActors:
             node = Node(NT_ACTOR)
             node.actorSrc = a
-            node.options['label'] = a
+            node.options['label'] = initialActors[a]
             self.addActiveActor(node)
 
         self.rows = [ self.activeActors[:] ]
@@ -733,6 +759,11 @@ def computeGraph(initialActors, data):
             # place new actor
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
+            if nod.options.has_key('actorLabel'):
+                newActor.options['label'] = nod.options['actorLabel']
+            else:
+                newActor.options['label'] = newActor.actorSrc
+
             nod.arrival = newActor
             graph.addActiveActor(newActor)
 

@@ -14,13 +14,13 @@ actors host1="Host 1" excom="example.com"
     :
     :timer_expiry
 
-    host1 -* other "create" actor="other host"
+    host1 -* other "create" actorLabel="other host"
     other -box "do something"
     other -> host1 "done"
     other +
 
 	host1 -> excom "pause"
-    host1 -* other2 "create" actor="other host"
+    host1 -* other2 "create" actorLabel="other host"
     other2 -box "do something"
     other2 -> host1 "done"
     other2 +

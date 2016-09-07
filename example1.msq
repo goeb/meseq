@@ -16,7 +16,7 @@ actors host1="Host 1" excom="example.com" A=A B=B
     :
     :timer_expiry
 
-    host1 -* other "create" actor="other host"
+    host1 -* other "create" actorLabel="other host"
     other -box "do something"
     other -> host1 "done"
     other +
