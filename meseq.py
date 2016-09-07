@@ -258,7 +258,7 @@ class SequenceDiagram(object):
 
         self.init()
 
-        y = STEP/2
+        y = 0
         for row in self.matrix.rows:
             y += STEP
             for i in range(len(row)):
@@ -274,12 +274,12 @@ class SequenceDiagram(object):
                 elif node.type == NT_MSG_SEND:
                     if node.actorSrc == node.actorDest:
                         # message to self
-                        y1 = 2*STEP + STEP * node.arrival.y
+                        y1 = STEP + STEP * node.arrival.y
                         self.messageToSelf(x, y, y1, node.options['label'])
 
                     else:
                         x1 = 2*STEP + node.arrival.x * STEP * 3
-                        y1 = 2*STEP + STEP * node.arrival.y
+                        y1 = STEP + STEP * node.arrival.y
                         self.arrow(x, y, x1, y1, node.options['label'])
 
                 elif node.type == NT_MSG_LOST:
@@ -296,7 +296,7 @@ class SequenceDiagram(object):
 
                 elif node.type == NT_CREATE:
                     x1 = STEP + node.arrival.x * STEP * 3
-                    y1 = 2 * STEP + STEP * node.arrival.y
+                    y1 = STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
 
                 else:
