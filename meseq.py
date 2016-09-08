@@ -36,7 +36,7 @@ class SequenceDiagram(object):
 
         print "width=", width, ", height=", height, ", STEP=", STEP
 
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width), int(height))
+        self.surface = cairo.SVGSurface(None, width, height)
         cr = self.cr = cairo.Context(self.surface)
 
         #cr.scale(width/100.0, height/100.0)
@@ -61,7 +61,6 @@ class SequenceDiagram(object):
     def init(self):
         self.cr.set_source_rgba(0, 0, 0)
         self.cr.set_line_width(STEP/40)
-        self.cr.select_font_face('Georgia', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
     def cross(self, x, y):
         # draw an 'x'
