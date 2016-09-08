@@ -377,50 +377,6 @@ class SequenceDiagram(object):
                         self.lifeLine(x, y-STEP/2, y)
 
 
-class Demo2(SequenceDiagram):
-    def draw(self):
-
-        self.init()
-
-        # Host1
-        HOST1 = STEP * 2
-        self.boxWithLifeLine(HOST1, STEP, "Host 1")
-        self.lifeLine(HOST1, STEP * 2, STEP * 20)
-
-        # Example.com
-        EXAMPLE_COM = HOST1 + STEP * 5
-        self.boxWithLifeLine(EXAMPLE_COM, STEP, "example.com")
-        self.lifeLine(EXAMPLE_COM, STEP * 2, STEP * 20)
-
-        TIME = STEP * 2
-        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=23")
-        TIME += STEP
-        self.messageToSelf(HOST1, TIME, TIME+STEP*8, "timer")
-        TIME += STEP
-        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=24")
-        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=23", ARROW_LOST)
-        TIME += STEP
-        TIME += STEP
-        self.arrow(EXAMPLE_COM, TIME+STEP, HOST1, TIME+STEP*3, "ack=24")
-        self.arrow(HOST1, TIME, EXAMPLE_COM, TIME+STEP*2, "seq=25")
-
-        TIME += STEP
-        TIME += STEP
-        TIME += STEP
-        TIME += STEP
-        TIME += STEP
-        TIME += STEP
-        OTHER = EXAMPLE_COM + STEP*5
-        self.createActor(HOST1, TIME, OTHER-STEP, TIME, "create")
-        self.boxWithLifeLine(OTHER, TIME, "other host")
-        TIME += STEP
-        self.lifeLine(OTHER, TIME, TIME + STEP * 3)
-        TIME += STEP
-        self.boxWithRoundSides(OTHER, TIME, "do something")
-        TIME += STEP
-        self.arrow(OTHER, TIME, HOST1, TIME, "done")
-        TIME += STEP
-        self.cross(OTHER, TIME)
 
 # Node types
 NT_ACTOR     = 'actor'
@@ -564,7 +520,7 @@ def tokenParseActors(tokens):
     """Expected tokens:
     actorid [ '=' actorLabel ] ...
     """
-    actors = {}
+    actors = []
     actorid = None
     gotEqual = False
     for token in tokens:
@@ -573,18 +529,18 @@ def tokenParseActors(tokens):
                 die("tokenParseActors Invalid = without actorid: %s" % tokens)
             gotEqual = True
         elif gotEqual:
-            actors[actorid] = token
+            actors.append( (actorid, token) )
             actorid = None
             gotEqual = False
         elif actorid is None:
             actorid = token
         else:
             # previous token was actor id without label
-            actors[actorid] = actorid
+            actors.append( (actorid, actorid) )
             actorid = token
 
     if actorid is not None:
-        actors[actorid] = actorid
+        actors.append( (actorid, actorid) )
 
     return actors
 
@@ -694,7 +650,7 @@ def mscParse(data):
             tokens = mscParseTokens(line)
             dataTokens[currentSection].append(tokens)
 
-    initialActors = {}
+    initialActors = []
     for line in dataTokens['init']:
         if line[0] == 'actors':
             initialActors = tokenParseActors(line[1:])
@@ -751,10 +707,10 @@ class SequenceGraph:
         return None
 
     def init(self, initialActors):
-        for a in initialActors:
+        for actorId, actorLabel in initialActors:
             node = Node(NT_ACTOR)
-            node.actorSrc = a
-            node.options['label'] = initialActors[a]
+            node.actorSrc = actorId
+            node.options['label'] = actorLabel
             self.addActiveActor(node)
 
         self.rows = [ self.activeActors[:] ]
