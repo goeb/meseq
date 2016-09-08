@@ -503,7 +503,8 @@ def mscParseTokens(line):
     # states
     ST_READY = 0
     ST_IN_TOKEN = 1
-    ST_IN_TOKEN_IN_DQUOTE = 2
+    ST_IN_DQUOTE = 2
+    backslashed = False # indicate if a \ is jsut before the char
 
     state = ST_READY
     tokens = []
@@ -518,28 +519,40 @@ def mscParseTokens(line):
                 continue
                 
             if c == '"':
-                state = ST_IN_TOKEN_IN_DQUOTE
+                state = ST_IN_DQUOTE
                 currentToken = ''
             else:
                 state = ST_IN_TOKEN
-                currentToken = c
+                if c == '\\': backslashed = True
+                else: currentToken = c
+
+        elif backslashed:
+            if c == 'n': currentToken += '\n'
+            elif c == 't': currentToken += '\t'
+            else:
+                currentToken += c
+            backslashed = False
 
         elif state == ST_IN_TOKEN:
-            if c in ReservedTokens:
+
+            if c == '\\': backslashed = True
+
+            elif c in ReservedTokens:
                 tokens.append(currentToken)
                 tokens.append(c)
                 state = ST_READY
-                continue
-            if c.isspace():
+
+            elif c.isspace():
                 tokens.append(currentToken)
                 state = ST_READY
                 currentToken = None
-                continue
-            if c == '"': state = ST_IN_TOKEN_IN_DQUOTE
+
+            elif c == '"': state = ST_IN_DQUOTE
             else: currentToken += c
 
-        elif state == ST_IN_TOKEN_IN_DQUOTE:
-            if c == '"': state = ST_IN_TOKEN
+        elif state == ST_IN_DQUOTE:
+            if c == '\\': backslashed = True
+            elif c == '"': state = ST_IN_TOKEN
             else: currentToken += c
            
     # append last token
