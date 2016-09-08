@@ -1,5 +1,5 @@
 [init]
-actors w3client proxy w3server
+actors w3client proxy "" w3server
 
 [scenario]
     w3client   ->   proxy   CONNECT
@@ -22,6 +22,7 @@ actors w3client proxy w3server
                                                                         worker.cgi -box work...
                                           w3server                  <-  worker.cgi "ok, result"
                                                                         worker.cgi +
+	:
                     proxy            <-   w3server "ok, result"
     w3client  <-    proxy "ok, result"
                                                                         

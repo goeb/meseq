@@ -367,7 +367,8 @@ class SequenceDiagram(object):
                     self.bidirectional(x, y, x1, node.options['label'])
 
                 elif node.type == NT_CREATE:
-                    x1 = STEP + node.arrival.x * STEP * 3
+                    if x1 > x: x1 = STEP + node.arrival.x * STEP * 3
+                    else: x1 = 3*STEP + node.arrival.x * STEP * 3
                     y1 = STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
 
