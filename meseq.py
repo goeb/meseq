@@ -4,7 +4,8 @@ import cairo
 import math
 import sys
 import os
-
+import pango
+import pangocairo
 
 STEP = None
 
@@ -148,7 +149,7 @@ class SequenceDiagram(object):
         self.cr.line_to(x, y1)
         self.cr.stroke()
 
-    def text(self, x, y, text, flags = ALIGN_CENTER):
+    def text_old(self, x, y, text, flags = ALIGN_CENTER):
         """Write some text centered on (x, y)."""
         self.cr.set_font_size(STEP/4)
         fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
@@ -163,6 +164,31 @@ class SequenceDiagram(object):
 
         self.cr.move_to(xRef, yRef)
         self.cr.show_text(text)
+
+    def text(self, x, y, text, flags = ALIGN_CENTER):
+        pangocairoCtx = pangocairo.CairoContext(self.cr)
+        pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+        layout = pangocairoCtx.create_layout()
+        fontname = "Georgia"
+        font = pango.FontDescription(fontname + " " + str(STEP/4))
+        layout.set_font_description(font)
+        layout.set_text(text)
+        layout.set_alignment(pango.ALIGN_CENTER)
+        w, h = layout.get_size()
+        w = w / pango.SCALE
+        h = h / pango.SCALE
+        self.cr.save()
+        if flags == ALIGN_BOTTOM:
+            self.cr.translate(x-w/2, y-h)
+        else:
+            # center
+            self.cr.translate(x-w/2, y-h/2)
+
+
+        pangocairoCtx.update_layout(layout)
+        pangocairoCtx.show_layout(layout)
+        self.cr.restore()
+
 
     def bidirectional(self, x0, y0, x1, text):
         """Draw a massive bidirectional arrow.
