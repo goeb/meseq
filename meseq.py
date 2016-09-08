@@ -230,10 +230,10 @@ class SequenceDiagram(object):
 
         angle = math.atan((y1-y0)/(x1-x0))
 
-        print "angle=", angle
+        print "angle=", angle, ", y0=", y0, ", y1=", y1
         size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
 
-        if flags == ARROW_LOST: size = STEP
+        if flags == ARROW_LOST: size = size * 3 / 4
 
         self.cr.save()
 
@@ -267,7 +267,12 @@ class SequenceDiagram(object):
         
 
         # text
-        x = xHead / 2
+        # place text in the center of the arrow if arrrow is horizontal
+        # else place it at first 1/3
+        # so that text of crossing arrows do not conflict too much
+        # (test that angle is close to zero, due to rounding approximation)
+        if abs(y1-y0) < 0.001: x = xHead / 2
+        else: x = xHead / 3
         y = 0
         self.text(x, y, text, ALIGN_BOTTOM)
 
@@ -707,10 +712,13 @@ class SequenceGraph:
 
     def init(self, initialActors):
         for actorId, actorLabel in initialActors:
-            node = Node(NT_ACTOR)
-            node.actorSrc = actorId
-            node.options['label'] = actorLabel
-            self.addActiveActor(node)
+            if actorId == '': node = None
+            else:
+                node = Node(NT_ACTOR)
+                node.actorSrc = actorId
+                node.options['label'] = actorLabel
+
+            self.activeActors.append(node)
 
         self.rows = [ self.activeActors[:] ]
 
