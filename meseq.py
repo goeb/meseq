@@ -36,7 +36,7 @@ class SequenceDiagram(object):
 
         print "width=", width, ", height=", height, ", STEP=", STEP
 
-        self.surface = cairo.SVGSurface(filename + '.svg', width, height)
+        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width), int(height))
         cr = self.cr = cairo.Context(self.surface)
 
         #cr.scale(width/100.0, height/100.0)
