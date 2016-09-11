@@ -1,24 +1,30 @@
 [init]
-actors sender "" receiver
+actors sender "" "" receiver
 
 [scenario]
 
-    sender -> receiver "Message 1"
-	sender -> receiver "Message 2" goto=a
-	sender <- receiver "ACK 1"
+    sender -> receiver "Message 1" goto=a
+	:
 	:a
-	sender <- receiver "ACK 2"
-	:	
+	sender <- receiver "ACK 1" goto=b
+	sender -> receiver "Message 2" goto=b
+	:b
+	sender <- receiver "ACK 2" goto=c
+	:
+	:c
 	:	
 	:	
 	sender -x receiver "Message N"
-	sender -> sender   "Retransmission\ntimeout" goto=b
+	sender -> sender   "Retransmission\ntimeout" goto=f
 	:
 	:
-	sender -> receiver "Message N+1"
-	sender <- receiver "ACK N+1"
+	sender -> receiver "Message N+1" goto=d
 	:
-	:b
+	:d
+	sender <- receiver "ACK N+1" goto=e
+	:
+	:e
+	:f
 	sender -> receiver "Message N"
 
 
