@@ -14,5 +14,4 @@ Meseq has the following features:
 ## License
 
 Meseq is released under the GNU General Public License version 2.0.
-- 
-- 
+
