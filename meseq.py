@@ -6,6 +6,7 @@ import sys
 import os
 import pango
 import pangocairo
+import argparse
 
 STEP = None
 
@@ -905,11 +906,14 @@ def generateImage(name, matrix):
     SequenceDiagram(name, matrix, pixWidth)
 
 def main():
-    if len(sys.argv) != 2:
-        print "Usage: meseq.py <file>"
-        sys.exit(1)
+    """Process a msq file and generate an image of the message sequence diagram.
+    """
 
-    filename = sys.argv[1]
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('file', nargs=1, help='msq file')
+    args = parser.parse_args()
+
+    filename = args.file[0]
     f = open(filename)
     inputData = f.read()
 
