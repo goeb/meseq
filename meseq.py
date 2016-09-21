@@ -428,10 +428,11 @@ def die(msg):
     sys.stderr.write(msg + '\n')
     sys.exit(1)
 
-def mscConsolidateLines(data):
+def lexerConsolidateLines(data):
+    """Concatenate lines ending with a backslash and the line afterwards.
+    """
     lines = data.splitlines()
     outLines = []
-    concatenate = False
     currentLine = ''
 
     for line in lines:
@@ -446,21 +447,26 @@ def mscConsolidateLines(data):
             currentLine = ''
 
     if len(line) and line[-1] == '\\':
-        die('Invalid char \'\\\' on last line')
+        die('Invalid last char \'\\\' on last line')
 
     return outLines
 
-def mscParseSectionName(line):
-    try:
-        section = line[1:].split(']')[0]
-        return section
-    except:
-        die('Invalid section declaration: %s' % line)
+def lexerParseSectionName(line):
+    """Parse the section name.
+    
+    @param line
+        Must be formatted: '[' identifiers ']'
+    """
+    if len(line) < 3: die('Malformed section declaration (too short): \'%s\'' % line)
+    if line[0] != '[' or line[-1] != ']': die('Malformed section declaration: \'%s\'' % line)
+    return line[1:-1].strip()
 
 ReservedTokens = [ '=', ':' ]
 
-def mscParseTokens(line):
-    """Return the list of the tokens of the line."""
+def lexerParse(line):
+    """
+    Return the list of the tokens of the line.
+    """
     # TODO escape \"
     # states
     ST_READY = 0
@@ -641,7 +647,9 @@ def tokenParseScenarioLine(line):
 
 
 def mscParse(data):
-    lines = mscConsolidateLines(data)
+    """Parse the input msq file and extract the tokens.
+    """
+    lines = lexerConsolidateLines(data)
     dataTokens = {}
     currentSection = ''
     mscdesc = MscDescription()
@@ -650,10 +658,10 @@ def mscParse(data):
         if len(line) == 0: continue
         elif line[0] == '#': continue
         elif line[0] == '[':
-            currentSection = mscParseSectionName(line)
+            currentSection = lexerParseSectionName(line)
             dataTokens[currentSection] = []
         else:
-            tokens = mscParseTokens(line)
+            tokens = lexerParse(line)
             dataTokens[currentSection].append(tokens)
 
     initialActors = []

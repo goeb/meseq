@@ -1,15 +1,16 @@
-Matrix
-
-[ [ "Host 1", example.com:q
-
 ---------------- demo.msc ------------
 [init]
-actors host1="Host 1" excom="example.com"
+# old was: actors host1="Host 1" excom="example.com"
+
+actor host1 "Host 1"
+actor x type=hidden
+actor excom example.com
   
 [scenario]
 	host1 -> excom "seq=23"
 	host1 -> host1 "timer"   goto=timer_expiry
 	host1 -> excom "seq=24"  goto=a
+	host1 -startblock block1 "some text" 
 	excom -x host1 "ack=23"  goto=b
 	:a 
 	host1 -> excom "seq=25"  goto=b
@@ -18,15 +19,44 @@ actors host1="Host 1" excom="example.com"
 	:c
 	: 
 	:timer_expiry
+	excom -endblock block1 "some text"
 	
 	host1 -* other "create" actor="other host"
 	other -box "do something"
 	other -> host1 "done"
 	other +
+	host1 -note "some text" align=right
 
 ---------------- demo.msc ------------
 
 Syntax:
+
+Basic tokens:
+	token ::= (identifier | string | keyword)
+
+	identifier ::=  (letter|"_") (letter | digit | "_")*
+    letter     ::=  lowercase | uppercase
+    lowercase  ::=  "a"..."z"
+    uppercase  ::=  "A"..."Z"
+    digit      ::=  "0"..."9"
+
+	string            ::=  (simplestring | quotedstring) (simplestring | quotedstring)*
+	quotedstring      ::=  '"' (quotedstringchar | escapeseq | dollarvar)* '"'
+	quotedstringchar  ::=  <any character except "\", newline, '"'>
+	escapeseq         ::=  "\" <any ASCII character>
+	simplestring      ::=  simplestringitem simplestringitem*
+	simplestringitem  ::=  (simplestringchar | escapeseq | dollarvar)
+	simplestringchar  ::=  <any character except " ", "\", newline, '"'>
+	dollarvar         ::=  "$" (identifier | "{" identifier "}")
+
+Escape Sequences:
+	\n		\\		\"
+
+Keywords/Operators/Delimiters:
+		->		<-		=		#
+		-*		+
+		:		-box
+
 init:
 	Actors  ::= 'actors' Actor +
 	Actor   ::= ActorId '=' Name
