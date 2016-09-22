@@ -459,6 +459,40 @@ def parseSectionName(tokens):
 
 ReservedTokens = [ '=', ':', '[', ']' ]
 
+def isIdentifierChar(c):
+    return c == '_' or c.isalnum()
+    
+def lexerParseDollar(line, i):
+    """Parse a line after a dollar.
+    @param i
+        The offset of the character following the dollar.
+        
+    @return
+        The value of the env variable, and the offset after the consumed sequence.
+    """
+    if len(line) == i: die("Malformed dollar expression (too short): '%s'" % line)
+    
+    inCurlyBracket = False
+    if line[i] == '{':
+        inCurlyBracket = True
+        i += 1
+    
+    envkey = ''
+    while i < len(line) and isIdentifierChar(line[i]):
+        envkey += line[i]
+        i += 1
+    
+    if inCurlyBracket:
+        if i >= len(line): die("Missing closing '}' (short line): '%s'" % line)
+        if line[i] != '}': die("Missing closing '}': '%s'" % line)
+        i += 1
+        
+    if os.environ.has_key(envkey): envvalue = os.environ[envkey]
+    else: envvalue = ''
+    
+    return envvalue, i
+        
+
 def lexerParse(line):
     """
     Return the list of the tokens of the line.
@@ -482,7 +516,7 @@ def lexerParse(line):
         dollarvar         ::=  "$" (identifier | "{" identifier "}")
 
     Escape Sequences:
-        \n      \\      \"
+        \n      \\      \"    \$
 
     Reserved:
         =    :    [    ]
@@ -491,35 +525,49 @@ def lexerParse(line):
     # TODO escape \"
     # states
     ST_READY = 0
-    ST_IN_TOKEN = 1
-    ST_IN_DQUOTE = 2
+    ST_IN_TOKEN = 1 # simple string
+    ST_IN_DQUOTE = 2 # double quoted string
     ST_ESCAPED = 3 # indicate if a \ is just before the char
     ST_DOLLAR = 4
 
     state = ST_READY
     tokens = []
     currentToken = None
-    for i in range(len(line)):
+    envvar = None
+    i = 0
+    while i < len(line):
         c = line[i]
+
         if state == ST_READY:
             assert currentToken == None
-            if c.isspace(): continue
             if c == '#': break # rest of the line is a comment, ignore it
+            if c.isspace():
+                i += 1
+                continue
             if c in ReservedTokens:
                 tokens.append(c)
+                i += 1
                 continue
                 
+            currentToken = '' # the following cases shall initiate a token
             if c == '"':
                 state = ST_IN_DQUOTE
-                currentToken = ''
             elif c == '\\':
-                savedState = state
+                savedState = ST_IN_TOKEN # after the escape sequence, the state will be ST_IN_TOKEN
                 state = ST_ESCAPED
-                currentToken = ''
+            elif c == '$':
+				savedState = ST_IN_TOKEN # after the dollar sequence, the state will be ST_IN_TOKEN
+				state = ST_DOLLAR
             else:
                 state = ST_IN_TOKEN
                 currentToken = c
 
+        elif state == ST_DOLLAR:
+            value, i = lexerParseDollar(line, i)
+            currentToken += value
+            state = savedState
+            continue # i already incremented
+                
         elif state == ST_ESCAPED:
             if c == 'n': currentToken += '\n'
             else: currentToken += c
@@ -542,6 +590,10 @@ def lexerParse(line):
                 state = ST_READY
                 currentToken = None
 
+            elif c == '$':
+                savedState = state
+                state = ST_DOLLAR
+                
             elif c == '"': state = ST_IN_DQUOTE
             else: currentToken += c
 
@@ -550,10 +602,15 @@ def lexerParse(line):
                 savedState = state
                 state = ST_ESCAPED
             elif c == '"': state = ST_IN_TOKEN
+            elif c == '$':
+                savedState = state
+                state = ST_DOLLAR
             else: currentToken += c
             
         else:
             die("Invalid state '%s'" % state)
+            
+        i += 1
            
     # append last token
     if currentToken is not None: tokens.append(currentToken)

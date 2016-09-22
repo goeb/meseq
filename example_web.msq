@@ -18,10 +18,10 @@ actors w3client proxy "" w3server # toto
 
 	w3client  ->    proxy   "POST /work.cgi"
                     proxy            ->   w3server "POST /work.cgi"
-                                          w3server                  -*  worker.cgi
-                                                                        worker.cgi -box work...
-                                          w3server                  <-  worker.cgi "ok, result"
-                                                                        worker.cgi +
+                                          w3server                  -*  work.cgi
+                                                                        work.cgi -box work...
+                                          w3server                  <-  work.cgi "ok, result"
+                                                                        work.cgi +
 	:
                     proxy            <-   w3server "ok, result"
     w3client  <-    proxy "ok, result"
