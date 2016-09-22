@@ -451,28 +451,50 @@ def lexerConsolidateLines(data):
 
     return outLines
 
-def lexerParseSectionName(line):
-    """Parse the section name.
-    
-    @param line
-        Must be formatted: '[' identifiers ']'
-    """
-    if len(line) < 3: die('Malformed section declaration (too short): \'%s\'' % line)
-    if line[0] != '[' or line[-1] != ']': die('Malformed section declaration: \'%s\'' % line)
-    return line[1:-1].strip()
+def parseSectionName(tokens):
+    """Parse the section name."""
+    if len(tokens) != 3: die('Malformed section declaration (length): \'%s\'' % tokens)
+    if tokens[0] != '[' or tokens[2] != ']': die('Malformed section declaration: \'%s\'' % line)
+    return tokens[1]
 
-ReservedTokens = [ '=', ':' ]
+ReservedTokens = [ '=', ':', '[', ']' ]
 
 def lexerParse(line):
     """
     Return the list of the tokens of the line.
+    
+    Basic tokens:
+        token ::= (identifier | string | reserved)
+
+        identifier ::=  (letter|"_") (letter | digit | "_")*
+        letter     ::=  lowercase | uppercase
+        lowercase  ::=  "a"..."z"
+        uppercase  ::=  "A"..."Z"
+        digit      ::=  "0"..."9"
+
+        string            ::=  (simplestring | quotedstring) (simplestring | quotedstring)*
+        quotedstring      ::=  '"' (quotedstringchar | escapeseq | dollarvar)* '"'
+        quotedstringchar  ::=  <any character except "\", newline, '"'>
+        escapeseq         ::=  "\" <any ASCII character>
+        simplestring      ::=  simplestringitem simplestringitem*
+        simplestringitem  ::=  (simplestringchar | escapeseq | dollarvar)
+        simplestringchar  ::=  <any character except " ", "\", newline, '"'>
+        dollarvar         ::=  "$" (identifier | "{" identifier "}")
+
+    Escape Sequences:
+        \n      \\      \"
+
+    Reserved:
+        =    :    [    ]
+
     """
     # TODO escape \"
     # states
     ST_READY = 0
     ST_IN_TOKEN = 1
     ST_IN_DQUOTE = 2
-    backslashed = False # indicate if a \ is jsut before the char
+    ST_ESCAPED = 3 # indicate if a \ is just before the char
+    ST_DOLLAR = 4
 
     state = ST_READY
     tokens = []
@@ -480,8 +502,9 @@ def lexerParse(line):
     for i in range(len(line)):
         c = line[i]
         if state == ST_READY:
+            assert currentToken == None
             if c.isspace(): continue
-            if c == '#': break # rest of the line is a comment
+            if c == '#': break # rest of the line is a comment, ignore it
             if c in ReservedTokens:
                 tokens.append(c)
                 continue
@@ -489,26 +512,30 @@ def lexerParse(line):
             if c == '"':
                 state = ST_IN_DQUOTE
                 currentToken = ''
+            elif c == '\\':
+                savedState = state
+                state = ST_ESCAPED
+                currentToken = ''
             else:
                 state = ST_IN_TOKEN
-                if c == '\\': backslashed = True
-                else: currentToken = c
+                currentToken = c
 
-        elif backslashed:
+        elif state == ST_ESCAPED:
             if c == 'n': currentToken += '\n'
-            elif c == 't': currentToken += '\t'
-            else:
-                currentToken += c
-            backslashed = False
+            else: currentToken += c
+            state = savedState
 
         elif state == ST_IN_TOKEN:
 
-            if c == '\\': backslashed = True
+            if c == '\\':
+                savedState = state
+                state = ST_ESCAPED
 
             elif c in ReservedTokens:
                 tokens.append(currentToken)
                 tokens.append(c)
                 state = ST_READY
+                currentToken = None
 
             elif c.isspace():
                 tokens.append(currentToken)
@@ -519,9 +546,14 @@ def lexerParse(line):
             else: currentToken += c
 
         elif state == ST_IN_DQUOTE:
-            if c == '\\': backslashed = True
+            if c == '\\':
+                savedState = state
+                state = ST_ESCAPED
             elif c == '"': state = ST_IN_TOKEN
             else: currentToken += c
+            
+        else:
+            die("Invalid state '%s'" % state)
            
     # append last token
     if currentToken is not None: tokens.append(currentToken)
@@ -654,14 +686,12 @@ def mscParse(data):
     currentSection = ''
     mscdesc = MscDescription()
     for line in lines:
-        line = line.strip()
-        if len(line) == 0: continue
-        elif line[0] == '#': continue
-        elif line[0] == '[':
-            currentSection = lexerParseSectionName(line)
+        tokens = lexerParse(line)
+        if len(tokens) == 0: continue
+        elif tokens[0] == '[':
+            currentSection = parseSectionName(tokens)
             dataTokens[currentSection] = []
         else:
-            tokens = lexerParse(line)
             dataTokens[currentSection].append(tokens)
 
     initialActors = []

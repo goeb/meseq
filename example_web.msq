@@ -1,5 +1,5 @@
 [init]
-actors w3client proxy "" w3server
+actors w3client proxy "" w3server # toto
 
 [scenario]
     w3client   ->   proxy   CONNECT
