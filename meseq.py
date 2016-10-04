@@ -20,6 +20,19 @@ ARROW_HEAD_LEFT  = 1
 ARROW_HEAD_RIGHT = 2
 ARROW_HEAD_HUGE  = 3
 
+def log(*args):
+    msg = ''
+    for arg in args:
+        if len(msg) != 0: msg += ' '
+        msg += '%s' % (arg)
+    print msg
+
+def debug(*args):
+    log('Debug:', *args)
+
+def error(*args):
+    log('Error:', *args)
+
 class SequenceDiagram(object):
 
     def __init__(self, filename, matrix, pixWidth):
@@ -35,7 +48,7 @@ class SequenceDiagram(object):
         nyTiles = nMessages + 2
         height = nyTiles * STEP
 
-        print "width=", width, ", height=", height, ", STEP=", STEP
+        debug("width=", width, ", height=", height, ", STEP=", STEP)
 
         self.surface = cairo.SVGSurface(None, width, height)
         cr = self.cr = cairo.Context(self.surface)
@@ -194,7 +207,7 @@ class SequenceDiagram(object):
         """Draw a massive bidirectional arrow.
         """
         if x1 == x0:
-            print "error, bidirectional"
+            error("error, bidirectional")
             return
 
         if x1 < x0:
@@ -220,7 +233,7 @@ class SequenceDiagram(object):
     def arrow(self, x0, y0, x1, y1, text, flags = ARROW_NORMAL):
 
         if x1 == x0:
-            print "error, arrow"
+            error("error, arrow")
             return
 
         elif x1 < x0:
@@ -231,7 +244,7 @@ class SequenceDiagram(object):
 
         angle = math.atan((y1-y0)/(x1-x0))
 
-        print "angle=", angle, ", y0=", y0, ", y1=", y1
+        debug("angle=", angle, ", y0=", y0, ", y1=", y1)
         size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
 
         if flags == ARROW_LOST: size = size * 3 / 4
@@ -264,7 +277,7 @@ class SequenceDiagram(object):
             self.cross(xHead, yHead)
 
         else:
-            print "error, invalid flag:", flags
+            error("error, invalid flag:", flags)
         
 
         # text
@@ -1013,10 +1026,10 @@ def main():
     inputData = f.read()
 
     initialActors, data = mscParse(inputData)
-    print 'initialActors=', initialActors
-    print 'data=', data
+    debug('initialActors=', initialActors)
+    debug('data=', data)
     matrix = computeGraph(initialActors, data)
-    print "matrix=", matrix.rows
+    debug("matrix=", matrix.rows)
     generateImage(os.path.basename(filename), matrix)
 
 if __name__ == '__main__':
