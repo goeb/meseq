@@ -100,7 +100,7 @@ class SequenceDiagram(object):
 
 
     def boxWithLifeLine(self, x, y, text):
-        
+
         self.box(x, y, text)
 
         BOX_HEIGHT = STEP * 1
@@ -120,7 +120,7 @@ class SequenceDiagram(object):
         self.cr.set_source_rgb(1, 1, 1)
         self.cr.rectangle(x-w/2, y-h/2, w, h)
         self.cr.fill()
-    
+
         self.cr.set_source_rgb(0, 0, 0)
 
         radius = STEP
@@ -153,11 +153,10 @@ class SequenceDiagram(object):
         self.cr.stroke()
 
         # the text
-        self.text(x, y, text)
+        self.text(x, y, text, white_bg=False)
 
-    
+
     def lifeLine(self, x, y0, y1):
-
         self.cr.move_to(x, y0)
         self.cr.line_to(x, y1)
         self.cr.stroke()
@@ -178,8 +177,9 @@ class SequenceDiagram(object):
         self.cr.move_to(xRef, yRef)
         self.cr.show_text(text)
 
-    def text(self, x, y, text, flags = ALIGN_CENTER):
+    def text(self, x, y, text, flags = ALIGN_CENTER, white_bg=True):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
+
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
         fontname = "Georgia"
@@ -189,8 +189,14 @@ class SequenceDiagram(object):
         layout.set_alignment(pango.ALIGN_CENTER)
         w, h = layout.get_size()
         w = w / pango.SCALE
-        h = h / pango.SCALE
+        h = h / pango.SCALE + 1
+        if white_bg:
+            attr = pango.AttrList()
+            bg_color = pango.AttrBackground(65535, 65535, 65535, 0, len(text))
+            attr.insert(bg_color)
+            layout.set_attributes(attr)
         self.cr.save()
+
         if flags == ALIGN_BOTTOM:
             self.cr.translate(x-w/2, y-h)
         else:
@@ -212,7 +218,7 @@ class SequenceDiagram(object):
 
         if x1 < x0:
             x0, x1 = x1, x0 # swap variables
-        
+
         self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
         self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
 
@@ -278,7 +284,7 @@ class SequenceDiagram(object):
 
         else:
             error("error, invalid flag:", flags)
-        
+
 
         # text
         # place text in the center of the arrow if arrrow is horizontal
@@ -343,14 +349,23 @@ class SequenceDiagram(object):
         y = 0
         for row in self.matrix.rows:
             y += STEP
-            for i in range(len(row)):
-                x = 2*STEP + i * STEP * 3
-                node = row[i]
-
+            for i, node in enumerate(row):
                 if node is None:
-                    pass
+                    continue
 
-                elif node.type == NT_ACTOR:
+                if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
+                    self.lifeLine(x, y-STEP/2, y+STEP/2)
+                elif node.type == NT_TERMINATE:
+                    self.lifeLine(x, y-STEP/2, y)
+                x = 2*STEP + i * STEP * 3
+
+            for i, node in enumerate(row):
+                if node is None:
+                    continue
+
+                x = 2*STEP + i * STEP * 3
+
+                if node.type == NT_ACTOR:
                     self.box(x, y, node.options['label'])
 
                 elif node.type == NT_MSG_SEND:
@@ -386,14 +401,7 @@ class SequenceDiagram(object):
                     y1 = STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
 
-                else:
-                    pass
 
-                if node is not None:
-                    if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
-                        self.lifeLine(x, y-STEP/2, y+STEP/2)
-                    elif node.type == NT_TERMINATE:
-                        self.lifeLine(x, y-STEP/2, y)
 
 
 
@@ -474,42 +482,42 @@ ReservedTokens = [ '=', ':', '[', ']' ]
 
 def isIdentifierChar(c):
     return c == '_' or c.isalnum()
-    
+
 def lexerParseDollar(line, i):
     """Parse a line after a dollar.
     @param i
         The offset of the character following the dollar.
-        
+
     @return
         The value of the env variable, and the offset after the consumed sequence.
     """
     if len(line) == i: die("Malformed dollar expression (too short): '%s'" % line)
-    
+
     inCurlyBracket = False
     if line[i] == '{':
         inCurlyBracket = True
         i += 1
-    
+
     envkey = ''
     while i < len(line) and isIdentifierChar(line[i]):
         envkey += line[i]
         i += 1
-    
+
     if inCurlyBracket:
         if i >= len(line): die("Missing closing '}' (short line): '%s'" % line)
         if line[i] != '}': die("Missing closing '}': '%s'" % line)
         i += 1
-        
+
     if os.environ.has_key(envkey): envvalue = os.environ[envkey]
     else: envvalue = ''
-    
+
     return envvalue, i
-        
+
 
 def lexerParse(line):
     """
     Return the list of the tokens of the line.
-    
+
     Basic tokens:
         token ::= (identifier | string | reserved)
 
@@ -561,7 +569,7 @@ def lexerParse(line):
                 tokens.append(c)
                 i += 1
                 continue
-                
+
             currentToken = '' # the following cases shall initiate a token
             if c == '"':
                 state = ST_IN_DQUOTE
@@ -580,7 +588,7 @@ def lexerParse(line):
             currentToken += value
             state = savedState
             continue # i already incremented
-                
+
         elif state == ST_ESCAPED:
             if c == 'n': currentToken += '\n'
             else: currentToken += c
@@ -606,7 +614,7 @@ def lexerParse(line):
             elif c == '$':
                 savedState = state
                 state = ST_DOLLAR
-                
+
             elif c == '"': state = ST_IN_DQUOTE
             else: currentToken += c
 
@@ -619,15 +627,15 @@ def lexerParse(line):
                 savedState = state
                 state = ST_DOLLAR
             else: currentToken += c
-            
+
         else:
             die("Invalid state '%s'" % state)
-            
+
         i += 1
-           
+
     # append last token
     if currentToken is not None: tokens.append(currentToken)
-    
+
     return tokens
 
 def tokenParseActors(tokens):
@@ -718,7 +726,7 @@ def tokenParseScenarioLine(line):
     elif len(line) < 3:
         die('Invalid scenario line: %s' % line)
 
-    # message 
+    # message
     src = line[0]
     dest = line[2]
     if line[1] == '->': node = Node(NT_MSG_SEND)
@@ -768,7 +776,7 @@ def mscParse(data):
     for line in dataTokens['init']:
         if line[0] == 'actors':
             initialActors = tokenParseActors(line[1:])
-            
+
         else:
             die('Invalid declaration in init: %s' % line)
 
@@ -911,7 +919,7 @@ class SequenceGraph:
         currentRow[index] = node
         node.x = index
         node.y = len(self.rows) - 1
-        
+
     def queue(self, node):
         self.pendingMessages.append(node)
 
@@ -935,12 +943,12 @@ class SequenceGraph:
             else:
                 i += 1 # keep it for later
 
-            
+
 def computeGraph(initialActors, data):
     graph = SequenceGraph()
     # init first row, with initial actors
 
-        
+
     graph.init(initialActors)
 
     # go through the lifeline
@@ -982,7 +990,7 @@ def computeGraph(initialActors, data):
             graph.addActiveActor(newActor)
 
             graph.place(newActor)
-            
+
         elif nod.type == NT_BOX:
             # insert a row if previous node is a NT_BOX or NT_ACTOR
             # so that they do not touch each other
@@ -1006,8 +1014,8 @@ def computeGraph(initialActors, data):
     graph.updateLifeline()
 
     return graph
-            
-        
+
+
 
 def generateImage(name, matrix):
     pixWidth = 600

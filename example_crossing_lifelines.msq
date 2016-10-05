@@ -1,0 +1,6 @@
+[init]
+actors client=Client app1=App1 app2=App2
+
+[scenario]
+client -> app2 "Some looooong text"
+
