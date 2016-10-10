@@ -20,6 +20,11 @@ ARROW_HEAD_LEFT  = 1
 ARROW_HEAD_RIGHT = 2
 ARROW_HEAD_HUGE  = 3
 
+Verbose = 0
+def setVerbosity(n):
+    global Verbose
+    Verbose = n
+
 def log(*args):
     msg = ''
     for arg in args:
@@ -27,7 +32,11 @@ def log(*args):
         msg += '%s' % (arg)
     print msg
 
+def info(*args):
+    log('Info:', *args)
+
 def debug(*args):
+    if Verbose < 1: return
     log('Debug:', *args)
 
 def error(*args):
@@ -68,7 +77,7 @@ class SequenceDiagram(object):
         cr.rectangle(0, 0, width, height)
         cr.stroke()
 
-        self.surface.write_to_png(filename + '.png')
+        self.surface.write_to_png(filename)
         cr.show_page()
         self.surface.finish()
 
@@ -1019,7 +1028,10 @@ def main():
 
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('file', nargs=1, help='msq file')
+    parser.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
     args = parser.parse_args()
+
+    if args.verbose: setVerbosity(1)
 
     filename = args.file[0]
     f = open(filename)
@@ -1030,7 +1042,9 @@ def main():
     debug('data=', data)
     matrix = computeGraph(initialActors, data)
     debug("matrix=", matrix.rows)
-    generateImage(os.path.basename(filename), matrix)
+    imagefile = filename + '.png'
+    generateImage(os.path.basename(imagefile), matrix)
+    info('Generated image: %s' % (imagefile) )
 
 if __name__ == '__main__':
     main()
