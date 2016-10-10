@@ -11,6 +11,16 @@ Meseq has the following features:
 - message to self
 - utf-8 encoded messages
 
+# Roadmap
+
+Features planned:
+
+* generate SVG image
+* improve layout of messages (text, arrows, ...)
+* add options (text color, background color, lifeline color, font, ...)
+* improve command line arguments
+
+
 ## License
 
 Meseq is released under the GNU General Public License version 2.0.
