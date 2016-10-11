@@ -390,7 +390,7 @@ class SequenceDiagram(object):
                     self.bidirectional(x, y, x1, node.options['label'])
 
                 elif node.type == NT_CREATE:
-                    if x1 > x: x1 = STEP + node.arrival.x * STEP * 3
+                    if node.arrival.x > node.x: x1 = STEP + node.arrival.x * STEP * 3
                     else: x1 = 3*STEP + node.arrival.x * STEP * 3
                     y1 = STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
@@ -811,6 +811,12 @@ class SequenceGraph:
 
         self.activeActors.append(actor)
 
+    def hasActor(self, actorid):
+        for a in self.activeActors:
+            if a is not None and a.actorSrc == actorid:
+                return True
+        return False
+
     def removeActor(self, actorId):
         for i in range(len(self.activeActors)):
             if self.activeActors[i] is not None:
@@ -976,6 +982,9 @@ def computeGraph(initialActors, data):
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
             # TODO check if id of the new one already exists
+
+            if graph.hasActor(nod.actorDest):
+                die('Cannot create already existing actor: %s' % nod.actorDest)
 
             graph.place(nod)
 

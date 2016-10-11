@@ -1,0 +1,16 @@
+[init]
+actors server
+
+[scenario]
+    server -* worker1
+    server -* worker2
+    server -* worker3
+	worker1 +
+	worker2 -* worker1
+	worker1 +
+	worker3 -* worker1
+	worker3 +
+                                                                        
+
+
+
