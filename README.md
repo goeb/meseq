@@ -3,7 +3,7 @@ Meseq is a prototype for generating sequence diagrams from a textual description
 (see the examples)
 
 Meseq has the following features:
-- generate PNG image
+- generate images in formats: PNG, SVG
 - crossing messages
 - lost message
 - box of text on a life line
@@ -15,10 +15,8 @@ Meseq has the following features:
 
 Features planned:
 
-* generate SVG image
 * improve layout of messages (text, arrows, ...)
 * add options (text color, background color, lifeline color, font, ...)
-* improve command line arguments
 
 
 ## License

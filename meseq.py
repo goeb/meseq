@@ -44,7 +44,7 @@ def error(*args):
 
 class SequenceDiagram(object):
 
-    def __init__(self, filename, matrix, pixWidth):
+    def __init__(self, filename, matrix, pixWidth, imgFormat):
         global STEP
 
         self.matrix = matrix
@@ -59,7 +59,10 @@ class SequenceDiagram(object):
 
         debug("width=", width, ", height=", height, ", STEP=", STEP)
 
-        self.surface = cairo.SVGSurface(None, width, height)
+        if imgFormat == 'png': svgFilename = None
+        else: svgFilename = filename
+
+        self.surface = cairo.SVGSurface(svgFilename, width, height)
         cr = self.cr = cairo.Context(self.surface)
 
         #cr.scale(width/100.0, height/100.0)
@@ -77,7 +80,10 @@ class SequenceDiagram(object):
         cr.rectangle(0, 0, width, height)
         cr.stroke()
 
-        self.surface.write_to_png(filename)
+
+        if imgFormat == 'png':
+            self.surface.write_to_png(filename)
+
         cr.show_page()
         self.surface.finish()
 
@@ -1026,11 +1032,6 @@ def computeGraph(initialActors, data):
     return graph
             
         
-
-def generateImage(name, matrix):
-    pixWidth = 600
-    SequenceDiagram(name, matrix, pixWidth)
-
 def main():
     """Process a msq file and generate an image of the message sequence diagram.
     """
@@ -1038,6 +1039,9 @@ def main():
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('file', nargs=1, help='msq file')
     parser.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
+    parser.add_argument('-f', '--format', choices=['png', 'svg'], help='format of the generated image (default: png)', default='png')
+    parser.add_argument('-o', '--output', help='name of the generated image')
+    parser.add_argument('-w', '--width', help='width in pixel of the generated image (default: 600)', default=600)
     args = parser.parse_args()
 
     if args.verbose: setVerbosity(1)
@@ -1051,8 +1055,15 @@ def main():
     debug('data=', data)
     matrix = computeGraph(initialActors, data)
     debug("matrix=", matrix.rows)
-    imagefile = filename + '.png'
-    generateImage(os.path.basename(imagefile), matrix)
+
+    imgFormat = args.format
+
+    if args.output is None:
+        imagefile = filename + '.' + imgFormat
+    else:
+        imagefile = args.output
+
+    SequenceDiagram(imagefile, matrix, args.width, imgFormat)
     info('Generated image: %s' % (imagefile) )
 
 if __name__ == '__main__':
