@@ -72,22 +72,23 @@ class Color:
         # now colorspec must be a 6-hex-digit string
         try:
             self._red = ord(colorspec[0:2].decode('hex'))
-            self._green = ord(colorspec[2:2].decode('hex'))
-            self._blue = ord(colorspec[4:2].decode('hex'))
+            self._green = ord(colorspec[2:4].decode('hex'))
+            self._blue = ord(colorspec[4:6].decode('hex'))
         except:
             # error, use a grey
+            print "error colorspec=", colorspec
             self._red = 0x88
             self._green = 0x88
             self._blue = 0x88
 
     def red(self):
-        return self._red
+        return self._red * 1.0 / 0xFF
 
     def green(self):
-        return self._green
+        return self._green * 1.0 / 0xFF
 
     def blue(self):
-        return self._blue
+        return self._blue * 1.0 / 0xFF
 
 class Options:
     def __init__(self):
@@ -115,7 +116,7 @@ class Options:
         return self._data['label']
 
     def getColor(self):
-        return self._data['color']
+        return Color(self._data['color'])
 
     def getBgcolor(self):
         return self._data['bgcolor']
@@ -289,6 +290,9 @@ class SequenceDiagram(object):
 
         if x1 < x0:
             x0, x1 = x1, x0 # swap variables
+
+        color = options.getColor()
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         
         self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
         self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
