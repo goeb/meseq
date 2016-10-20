@@ -7,7 +7,7 @@ actor x type=hidden
 actor excom example.com
   
 [scenario]
-	host1 -> excom "seq=23"
+	host1 -> excom "seq=23" color=abc bgcolor=fff
 	host1 -> host1 "timer"   goto=timer_expiry
 	host1 -> excom "seq=24"  goto=a
 	host1 -startblock block1 "some text" 
