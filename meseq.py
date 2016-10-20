@@ -42,6 +42,84 @@ def debug(*args):
 def error(*args):
     log('Error:', *args)
 
+Colors = { 'white'   : 'fff',
+           'grey'    : '888',
+           'red'     : 'F00',
+           'orange'  : 'fb0',
+           'yellow'  : 'ff0',
+           'green'   : '0f0',
+           'blue'    : '00F',
+           'black'   : '000'
+           }
+
+class Color:
+    def __init__(self, colorspec):
+        """
+        @param colorspec
+            A string that specifies the color, either:
+            - a 3-hex-digit string RGB. Eg: '00F'
+            - a 6-hex-digit string RGB. Eg: '0000FF'
+            - a color name: 'red', 'green', etc. (see Colors)
+        """
+        colorspec = colorspec.lower()
+
+        if Colors.has_key(colorspec):
+            colorspec = Colors[colorspec]
+
+        if len(colorspec) == 3:
+            colorspec = colorspec[0] * 2 + colorspec[1] * 2 + colorspec[2] * 2
+
+        # now colorspec must be a 6-hex-digit string
+        try:
+            self._red = ord(colorspec[0:2].decode('hex'))
+            self._green = ord(colorspec[2:2].decode('hex'))
+            self._blue = ord(colorspec[4:2].decode('hex'))
+        except:
+            # error, use a grey
+            self._red = 0x88
+            self._green = 0x88
+            self._blue = 0x88
+
+    def red(self):
+        return self._red
+
+    def green(self):
+        return self._green
+
+    def blue(self):
+        return self._blue
+
+class Options:
+    def __init__(self):
+        self._data = {}
+        self._data['label'] = ''
+        self._data['color'] = 'black'
+        self._data['bgcolor'] = 'white'
+
+    def __getitem__(self, key):
+        """deprecated. for compatibility with options['label']."""
+        return self._data[key]
+
+    def has_key(self, key):
+        return self._data.has_key(key)
+
+    def update(self, otherOpts):
+        """Options are taken from 'otherOpts', that must be a dictionnary."""
+        for key in otherOpts:
+            self.add(key, otherOpts[key])
+
+    def add(self, key, value):
+        self._data[key] = value
+
+    def getLabel(self):
+        return self._data['label']
+
+    def getColor(self):
+        return self._data['color']
+
+    def getBgcolor(self):
+        return self._data['bgcolor']
+
 class SequenceDiagram(object):
 
     def __init__(self, filename, matrix, pixWidth, imgFormat):
@@ -177,22 +255,6 @@ class SequenceDiagram(object):
         self.cr.line_to(x, y1)
         self.cr.stroke()
 
-    def text_old(self, x, y, text, flags = ALIGN_CENTER):
-        """Write some text centered on (x, y)."""
-        self.cr.set_font_size(STEP/4)
-        fascent, fdescent, fheight, fxadvance, fyadvance = self.cr.font_extents()
-        xbearing, ybearing, width, height, xadvance, yadvance = self.cr.text_extents(text)
-
-        xRef = x - width / 2
-
-        if flags == ALIGN_BOTTOM:
-            yRef = y - height / 2
-        else: # centered
-            yRef = y + fdescent
-
-        self.cr.move_to(xRef, yRef)
-        self.cr.show_text(text)
-
     def text(self, x, y, text, flags = ALIGN_CENTER):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
@@ -218,7 +280,7 @@ class SequenceDiagram(object):
         self.cr.restore()
 
 
-    def bidirectional(self, x0, y0, x1, text):
+    def bidirectional(self, x0, y0, x1, options):
         """Draw a massive bidirectional arrow.
         """
         if x1 == x0:
@@ -242,7 +304,7 @@ class SequenceDiagram(object):
 
         # the text
         x = x0 +(x1-x0) / 2
-        self.text(x, y0, text)
+        self.text(x, y0, options.getLabel(), options)
 
 
     def arrow(self, x0, y0, x1, y1, text, flags = ARROW_NORMAL):
@@ -393,7 +455,7 @@ class SequenceDiagram(object):
 
                 elif node.type == NT_BIDIRECTIONAL:
                     x1 = 2*STEP + node.arrival.x * STEP * 3
-                    self.bidirectional(x, y, x1, node.options['label'])
+                    self.bidirectional(x, y, x1, node.options)
 
                 elif node.type == NT_CREATE:
                     if node.arrival.x > node.x: x1 = STEP + node.arrival.x * STEP * 3
@@ -430,19 +492,13 @@ class Node:
         self.type = type
         self.actorSrc = None
         self.actorDest = None
-        self.options = { 'label': '' }
+        self.options = Options()
         self.id = None # used for 'goto'
 
     def __repr__(self):
         return '<%s:%s->%s(%s)>' % (self.type, self.actorSrc, self.actorDest, self.options['label'])
 
-    def setOption(self, key, value):
-        self.options[key] = value
-
 class Matrix:
-    pass
-
-def parseCommandLine():
     pass
 
 def readInput(file):
@@ -755,7 +811,7 @@ def tokenParseScenarioLine(line):
     if node.type != NT_BOX:
         node.actorDest = dest
     else:
-        node.options['label'] = dest
+        node.options.add('label', dest)
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
     node.options.update(options)
@@ -847,7 +903,7 @@ class SequenceGraph:
             else:
                 node = Node(NT_ACTOR)
                 node.actorSrc = actorId
-                node.options['label'] = actorLabel
+                node.options.add('label', actorLabel)
 
             self.activeActors.append(node)
 
@@ -1000,7 +1056,7 @@ def computeGraph(initialActors, data):
             if nod.options.has_key('actorLabel'):
                 newActor.options['label'] = nod.options['actorLabel']
             else:
-                newActor.options['label'] = newActor.actorSrc
+                newActor.options.add('label', newActor.actorSrc)
 
             nod.arrival = newActor
             graph.addActiveActor(newActor)

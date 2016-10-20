@@ -1,8 +1,8 @@
 [init]
-actors w3client proxy "" w3server # toto
+actors w3client somebody proxy "" w3server # toto
 
 [scenario]
-    w3client   ->   proxy   CONNECT
+    w3client   ->   proxy   CONNECT color=red bgcolor=fff
     w3client   <-   proxy   OK
 	w3client   ->   proxy   bytes
 					proxy            ->   w3server bytes
