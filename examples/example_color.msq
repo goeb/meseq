@@ -1,0 +1,15 @@
+[init]
+actors sender "" "" receiver
+
+[scenario]
+
+    sender -> receiver "Message 1" color=yellow
+	sender <- receiver "ACK 1" goto=b color=blue
+	sender -> receiver "Message 2" goto=b color=888
+	:b
+	sender <- receiver "ACK 2" goto=c color=black
+	sender -> receiver "Message N" color=00ff00
+
+
+
+

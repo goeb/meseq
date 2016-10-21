@@ -291,9 +291,6 @@ class SequenceDiagram(object):
         if x1 < x0:
             x0, x1 = x1, x0 # swap variables
 
-        color = options.getColor()
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
-        
         self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
         self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
 
@@ -417,6 +414,12 @@ class SequenceDiagram(object):
         # set text
         self.text(x0 + STEP*1.5, y0+STEP*0.5, text)
 
+    def getx(self, lifelineNum):
+        """Convert a lifeline number to an x offset on the grid."""
+        marginLeft = STEP * 2
+        lifelinePadding = STEP * 3
+        return marginLeft + lifelinePadding * lifelineNum
+
     def draw(self):
 
         self.init()
@@ -425,13 +428,16 @@ class SequenceDiagram(object):
         for row in self.matrix.rows:
             y += STEP
             for i in range(len(row)):
-                x = 2*STEP + i * STEP * 3
+                x = self.getx(i)
                 node = row[i]
 
                 if node is None:
-                    pass
+                    continue
 
-                elif node.type == NT_ACTOR:
+                color = node.options.getColor()
+                self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        
+                if node.type == NT_ACTOR:
                     self.box(x, y, node.options['label'])
 
                 elif node.type == NT_MSG_SEND:
@@ -441,13 +447,13 @@ class SequenceDiagram(object):
                         self.messageToSelf(x, y, y1, node.options['label'])
 
                     else:
-                        x1 = 2*STEP + node.arrival.x * STEP * 3
+                        x1 = self.getx(node.arrival.x)
                         y1 = STEP + STEP * node.arrival.y
                         self.arrow(x, y, x1, y1, node.options['label'])
 
                 elif node.type == NT_MSG_LOST:
                     xArrival = self.matrix.getIndex(node.actorDest)
-                    x1 = 2 * STEP + xArrival * STEP * 3
+                    x1 = self.getx(xArrival)
                     y1 = y
                     self.arrow(x, y, x1, y1, node.options['label'], ARROW_LOST)
 
@@ -458,12 +464,12 @@ class SequenceDiagram(object):
                     self.cross(x, y)
 
                 elif node.type == NT_BIDIRECTIONAL:
-                    x1 = 2*STEP + node.arrival.x * STEP * 3
+                    x1 = self.getx(node.arrival.x)
                     self.bidirectional(x, y, x1, node.options)
 
                 elif node.type == NT_CREATE:
-                    if node.arrival.x > node.x: x1 = STEP + node.arrival.x * STEP * 3
-                    else: x1 = 3*STEP + node.arrival.x * STEP * 3
+                    if node.arrival.x > node.x: x1 = self.getx(node.arrival.x) - STEP
+                    else: x1 = self.getx(node.arrival.x) + STEP
                     y1 = STEP + STEP * node.arrival.y
                     self.arrow(x, y, x1, y1, node.options['label'])
 
@@ -471,6 +477,7 @@ class SequenceDiagram(object):
                     pass
 
                 if node is not None:
+                    self.cr.set_source_rgb(0, 0, 0)
                     if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
                         self.lifeLine(x, y-STEP/2, y+STEP/2)
                     elif node.type == NT_TERMINATE:
@@ -1035,7 +1042,7 @@ def computeGraph(initialActors, data):
                 recvNode = Node(NT_MSG_RECV)
                 recvNode.actorSrc = nod.actorDest
                 if nod.options.has_key('goto'):
-                    recvNode.options['goto'] = nod.options['goto']
+                    recvNode.options.add('goto', nod.options['goto'])
                 nod.arrival = recvNode
                 graph.queue(recvNode)
 
