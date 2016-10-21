@@ -1,4 +1,5 @@
 [init]
+actor w3client
 actor somebody
 actor proxy
 actor ""

@@ -43,7 +43,8 @@ def error(*args):
     log('Error:', *args)
 
 Colors = { 'white'   : 'fff',
-           'grey'    : '888',
+           'grey'    : '666',
+           'gray'    : '666',
            'red'     : 'F00',
            'orange'  : 'fb0',
            'yellow'  : 'ff0',
@@ -427,6 +428,26 @@ class SequenceDiagram(object):
         y = 0
         for row in self.matrix.rows:
             y += STEP
+
+            # draw lifelines first, so that they appear below the others widgets
+            for i in range(len(row)):
+                x = self.getx(i)
+                node = row[i]
+
+                if node is None: continue
+
+                if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
+                    color = node.lifelineOwner.options.getColor()
+                    self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+
+                    self.lifeLine(x, y-STEP/2, y+STEP/2)
+
+                elif node.type == NT_TERMINATE:
+                    color = node.lifelineOwner.options.getColor()
+                    self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+                    self.lifeLine(x, y-STEP/2, y)
+
+
             for i in range(len(row)):
                 x = self.getx(i)
                 node = row[i]
@@ -476,12 +497,6 @@ class SequenceDiagram(object):
                 else:
                     pass
 
-                if node is not None:
-                    self.cr.set_source_rgb(0, 0, 0)
-                    if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
-                        self.lifeLine(x, y-STEP/2, y+STEP/2)
-                    elif node.type == NT_TERMINATE:
-                        self.lifeLine(x, y-STEP/2, y)
 
 
 
@@ -935,6 +950,12 @@ class SequenceGraph:
                 return True
         return False
 
+    def getActiveActor(self, actorid):
+        for a in self.activeActors:
+            if a is not None and a.actorSrc == actorid:
+                return a
+        return None
+
     def removeActor(self, actorId):
         for i in range(len(self.activeActors)):
             if self.activeActors[i] is not None:
@@ -968,6 +989,7 @@ class SequenceGraph:
             if self.activeActors[i] is not None:
                 if row[i] is None:
                     row[i] = Node(NT_LIFELINE)
+                    row[i].lifelineOwner = self.activeActors[i]
 
     def addNewRow(self):
         self.updateLifeline()
@@ -1070,6 +1092,11 @@ def computeGraph(initialActors, data):
 
     # go through the lifeline
     for nod in data:
+
+        if hasattr(nod, 'actorSrc'):
+            nod.lifelineOwner = graph.getActiveActor(nod.actorSrc)
+        else: nod.lifelineOwner = None
+
         if nod.type in [ NT_MSG_SEND, NT_MSG_LOST ]:
 
             graph.place(nod)
@@ -1078,6 +1105,8 @@ def computeGraph(initialActors, data):
             if nod.type == NT_MSG_SEND:
                 recvNode = Node(NT_MSG_RECV)
                 recvNode.actorSrc = nod.actorDest
+                recvNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
+
                 if nod.options.has_key('goto'):
                     recvNode.options.add('goto', nod.options['goto'])
                 nod.arrival = recvNode
@@ -1086,6 +1115,7 @@ def computeGraph(initialActors, data):
         elif nod.type == NT_BIDIRECTIONAL:
             otherNode = Node(NT_MSG_RECV)
             otherNode.actorSrc = nod.actorDest
+            otherNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
             nod.arrival = otherNode
             graph.place2(nod, otherNode)
 
