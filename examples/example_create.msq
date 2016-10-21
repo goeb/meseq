@@ -1,5 +1,5 @@
 [init]
-actors server
+actor server
 
 [scenario]
     server -* worker1

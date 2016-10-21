@@ -1,5 +1,8 @@
 [init]
-actors sender "" "" receiver
+actor sender
+actor ""
+actor ""
+actor receiver
 
 [scenario]
 

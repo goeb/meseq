@@ -712,9 +712,45 @@ def lexerParse(line):
     
     return tokens
 
-def tokenParseActors(tokens):
+def tokenParseActor(tokens):
+    """Expected tokens:
+    actorid [options ...]
+
+    Options:
+        label=... ('label=' optional)
+        color=...
+        bgcolor=...
+    """
+    if len(tokens) == 0:
+        die('Invalid actor specification: %s' % tokens)
+
+    actorid = tokens[0]
+    if actorid == '': return None # this is a hidden actor
+
+    options = tokenParseKeyEqualValue(tokens[1:])
+
+    if not options.has_key('label'): options['label'] = actorid
+
+    node = Node(NT_ACTOR)
+    node.actorSrc = actorid
+    node.options.update(options)
+    return node
+
+
+def getActorOld(actorid, label):
+    """DEPRECATED (used by tokenParseActorsOld)"""
+    if actorid == '': return None
+    node = Node(NT_ACTOR)
+    node.actorSrc = actorid
+    node.options.add('label', label)
+    return node
+
+def tokenParseActorsOld(tokens):
     """Expected tokens:
     actorid [ '=' actorLabel ] ...
+
+    THIS FUNCTION IS DEPRECATED
+
     """
     actors = []
     actorid = None
@@ -725,18 +761,18 @@ def tokenParseActors(tokens):
                 die("tokenParseActors Invalid = without actorid: %s" % tokens)
             gotEqual = True
         elif gotEqual:
-            actors.append( (actorid, token) )
+            actors.append( getActorOld(actorid, token) )
             actorid = None
             gotEqual = False
         elif actorid is None:
             actorid = token
         else:
             # previous token was actor id without label
-            actors.append( (actorid, actorid) )
+            actors.append( getActorOld(actorid, actorid) )
             actorid = token
 
     if actorid is not None:
-        actors.append( (actorid, actorid) )
+        actors.append( getActorOld(actorid, actorid) )
 
     return actors
 
@@ -849,8 +885,17 @@ def mscParse(data):
     initialActors = []
     for line in dataTokens['init']:
         if line[0] == 'actors':
-            initialActors = tokenParseActors(line[1:])
+            info("""
+            DEPRECATED:
+            In [init], the syntax 'actors' is deprecated
+            and will be removed in the future.
+            Use instead 'actor' (one actor description by line)
+            """)
+            initialActors = tokenParseActorsOld(line[1:])
             
+        elif line[0] == 'actor':
+            actor = tokenParseActor(line[1:])
+            initialActors.append(actor)
         else:
             die('Invalid declaration in init: %s' % line)
 
@@ -909,15 +954,7 @@ class SequenceGraph:
         return None
 
     def init(self, initialActors):
-        for actorId, actorLabel in initialActors:
-            if actorId == '': node = None
-            else:
-                node = Node(NT_ACTOR)
-                node.actorSrc = actorId
-                node.options.add('label', actorLabel)
-
-            self.activeActors.append(node)
-
+        self.activeActors = initialActors
         self.rows = [ self.activeActors[:] ]
 
     def getCurrentRow(self):
