@@ -168,9 +168,10 @@ class SequenceDiagram(object):
         self.cr.set_source_rgba(0, 0, 0)
         self.cr.set_line_width(STEP/40)
 
-    def cross(self, x, y):
+    def cross(self, x, y, color):
         # draw an 'x'
         self.cr.save()
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         self.cr.translate(x, y)
         self.cr.rotate(math.pi/4)
 
@@ -222,7 +223,7 @@ class SequenceDiagram(object):
         self.cr.stroke()
 
         # the text
-        self.text(x, y, text)
+        self.text(x, y, text, color, bgcolor)
 
     def box(self, x, y, text, color, bgcolor):
         """Draw a box around (x, y), with centered text."""
@@ -243,7 +244,7 @@ class SequenceDiagram(object):
         self.cr.stroke()
 
         # the text
-        self.text(x, y, text)
+        self.text(x, y, text, color, bgcolor)
 
     
     def lifeLine(self, x, y0, y1):
@@ -252,7 +253,7 @@ class SequenceDiagram(object):
         self.cr.line_to(x, y1)
         self.cr.stroke()
 
-    def text(self, x, y, text, flags = V_ALIGN_CENTER):
+    def text(self, x, y, text, color, bgcolor, flags = V_ALIGN_CENTER):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
@@ -264,6 +265,15 @@ class SequenceDiagram(object):
         w, h = layout.get_size()
         w = w / pango.SCALE
         h = h / pango.SCALE
+
+        attr = pango.AttrList()
+        red = int(bgcolor.red()*65535)
+        green = int(bgcolor.green()*65535)
+        blue = int(bgcolor.blue()*65535)
+        bcAttribute = pango.AttrBackground(red, green, blue, 0, len(text))
+        attr.insert(bcAttribute)
+        layout.set_attributes(attr)
+
         self.cr.save()
         if flags == V_ALIGN_BOTTOM:
             self.cr.translate(x-w/2, y-h)
@@ -277,7 +287,7 @@ class SequenceDiagram(object):
         self.cr.restore()
 
 
-    def bidirectional(self, x0, y0, x1, options):
+    def bidirectional(self, x0, y0, x1, text, color, bgcolor):
         """Draw a massive bidirectional arrow.
         """
         if x1 == x0:
@@ -301,10 +311,10 @@ class SequenceDiagram(object):
 
         # the text
         x = x0 +(x1-x0) / 2
-        self.text(x, y0, options.getLabel(), options)
+        self.text(x, y0, text, color, bgcolor)
 
 
-    def arrow(self, x0, y0, x1, y1, text, flags = ARROW_NORMAL):
+    def arrow(self, x0, y0, x1, y1, text, color, bgcolor, flags = ARROW_NORMAL):
 
         if x1 == x0:
             error("error, arrow")
@@ -323,18 +333,29 @@ class SequenceDiagram(object):
 
         if flags == ARROW_LOST: size = size * 3 / 4
 
+        # Do transforming, in order to work easily
         self.cr.save()
-
         self.cr.translate(x0, y0)
+        self.cr.rotate(angle)
+
+        xHead = size * sign
 
         # a small dot for the starting point of the arrow
         self.dot(0, 0)
 
-        self.cr.rotate(angle)
+        # text
+        # place text in the center of the arrow if arrrow is horizontal
+        # else place it at first 1/3
+        # so that text of crossing arrows do not conflict too much
+        # (test that angle is close to zero, due to rounding approximation)
+        if abs(y1-y0) < 0.001: x = xHead / 2
+        else: x = xHead / 3
+        y = 0
+        self.text(x, y, text, color, bgcolor, V_ALIGN_BOTTOM)
 
         # the main line of the arrow
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         self.cr.move_to(0, 0)
-        xHead = size * sign
 
         self.cr.line_to(xHead, 0)
         self.cr.stroke()
@@ -348,22 +369,12 @@ class SequenceDiagram(object):
             self.arrowHead(xHead, yHead, [flag])
         elif flags == ARROW_LOST:
             # draw an 'x'
-            self.cross(xHead, yHead)
+            self.cross(xHead, yHead, color)
 
         else:
             error("error, invalid flag:", flags)
         
-
-        # text
-        # place text in the center of the arrow if arrrow is horizontal
-        # else place it at first 1/3
-        # so that text of crossing arrows do not conflict too much
-        # (test that angle is close to zero, due to rounding approximation)
-        if abs(y1-y0) < 0.001: x = xHead / 2
-        else: x = xHead / 3
-        y = 0
-        self.text(x, y, text, V_ALIGN_BOTTOM)
-
+        # Revert the transforming
         self.cr.restore()
 
 
@@ -393,7 +404,9 @@ class SequenceDiagram(object):
         self.cr.stroke()
 
 
-    def messageToSelf(self, x0, y0, y1, text):
+    def messageToSelf(self, x0, y0, y1, text, color, bgcolor):
+
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
         self.cr.move_to(x0, y0)
         self.cr.line_to(x0 + STEP, y0)
@@ -403,7 +416,7 @@ class SequenceDiagram(object):
         self.arrowHead(x0, y1, [ARROW_HEAD_LEFT])
 
         # set text
-        self.text(x0 + STEP*1.5, y0+STEP*0.5, text)
+        self.text(x0 + STEP*1.5, y0+STEP*0.5, text, color, bgcolor)
 
     def getx(self, lifelineNum):
         """Convert a lifeline number to an x offset on the grid."""
@@ -436,8 +449,9 @@ class SequenceDiagram(object):
                     color = node.lifelineOwner.options.getColor()
                     self.cr.set_source_rgb(color.red(), color.green(), color.blue())
                     self.lifeLine(x, y-STEP/2, y)
+                    self.cross(x, y, color)
 
-
+            # now draw the other widgets
             for i in range(len(row)):
                 x = self.getx(i)
                 node = row[i]
@@ -456,34 +470,31 @@ class SequenceDiagram(object):
                     if node.actorSrc == node.actorDest:
                         # message to self
                         y1 = STEP + STEP * node.arrival.y
-                        self.messageToSelf(x, y, y1, nodopts['label'])
+                        self.messageToSelf(x, y, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                     else:
                         x1 = self.getx(node.arrival.x)
                         y1 = STEP + STEP * node.arrival.y
-                        self.arrow(x, y, x1, y1, nodopts['label'])
+                        self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_MSG_LOST:
                     xArrival = self.matrix.getIndex(node.actorDest)
                     x1 = self.getx(xArrival)
                     y1 = y
-                    self.arrow(x, y, x1, y1, nodopts['label'], ARROW_LOST)
+                    self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), ARROW_LOST)
 
                 elif node.type == NT_BOX:
                     self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
-                elif node.type == NT_TERMINATE:
-                    self.cross(x, y)
-
                 elif node.type == NT_BIDIRECTIONAL:
                     x1 = self.getx(node.arrival.x)
-                    self.bidirectional(x, y, x1, nodopts)
+                    self.bidirectional(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_CREATE:
                     if node.arrival.x > node.x: x1 = self.getx(node.arrival.x) - STEP
                     else: x1 = self.getx(node.arrival.x) + STEP
                     y1 = STEP + STEP * node.arrival.y
-                    self.arrow(x, y, x1, y1, nodopts['label'])
+                    self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 else:
                     pass

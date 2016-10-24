@@ -21,6 +21,9 @@ actor receiver
 	                                actor_bgcolor=ff8 
 	          receiver -* receiver2
 	sender  <- child ready
+	sender  x- child lost color=grey
+	           child +
+	          receiver <- receiver2 ready
 
 
 
