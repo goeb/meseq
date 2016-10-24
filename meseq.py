@@ -10,8 +10,12 @@ import argparse
 
 STEP = None
 
-ALIGN_BOTTOM = 1 << 1
-ALIGN_CENTER = 1 << 2
+# Test alignment
+V_ALIGN_BOTTOM = 'V_ALIGN_BOTTOM'
+V_ALIGN_CENTER = 'V_ALIGN_CENTER'
+H_ALIGN_LEFT   = 'H_ALIGN_LEFT'
+H_ALIGN_RIGHT  = 'H_ALIGN_RIGHT'
+H_ALIGN_CENTER = 'H_ALIGN_CENTER'
 
 ARROW_NORMAL = 1 << 3
 ARROW_LOST   = 1 << 4
@@ -91,19 +95,12 @@ class Color:
     def blue(self):
         return self._blue * 1.0 / 0xFF
 
-class Options:
+
+class Options(dict):
     def __init__(self):
-        self._data = {}
-        self._data['label'] = ''
-        self._data['color'] = 'black'
-        self._data['bgcolor'] = 'white'
-
-    def __getitem__(self, key):
-        """deprecated. for compatibility with options['label']."""
-        return self._data[key]
-
-    def has_key(self, key):
-        return self._data.has_key(key)
+        self['label'] = ''
+        self['color'] = 'black'
+        self['bgcolor'] = 'white'
 
     def update(self, otherOpts):
         """Options are taken from 'otherOpts', that must be a dictionnary."""
@@ -111,16 +108,16 @@ class Options:
             self.add(key, otherOpts[key])
 
     def add(self, key, value):
-        self._data[key] = value
+        self[key] = value
 
     def getLabel(self):
-        return self._data['label']
+        return self['label']
 
     def getColor(self):
-        return Color(self._data['color'])
+        return Color(self['color'])
 
     def getBgcolor(self):
-        return self._data['bgcolor']
+        return Color(self['bgcolor'])
 
 class SequenceDiagram(object):
 
@@ -194,56 +191,54 @@ class SequenceDiagram(object):
         self.cr.fill()
 
 
-    def boxWithLifeLine(self, x, y, text):
-        
-        self.box(x, y, text)
-
-        BOX_HEIGHT = STEP * 1
-        # the life line
-        y0 = y + BOX_HEIGHT/2
-        self.cr.move_to(x, y0)
-        self.cr.line_to(x, y0 + BOX_HEIGHT/2)
-        self.cr.stroke()
-
-
-    def boxWithRoundSides(self, x, y, text):
+    def boxWithRoundSides(self, x, y, text, color, bgcolor):
         # the box
         width = w = STEP * 2
         height = h = STEP * 1
-
-        # white background
-        self.cr.set_source_rgb(1, 1, 1)
-        self.cr.rectangle(x-w/2, y-h/2, w, h)
-        self.cr.fill()
-    
-        self.cr.set_source_rgb(0, 0, 0)
-
         radius = STEP
         angle = math.acos(height/2/radius)
+        dx = radius * math.sin(angle)
+
+        # draw background first
+        self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
+
+        self.cr.rectangle(x-dx, y-h/2, 2*dx, h)
         self.cr.arc(x, y, radius, -angle/2, angle/2)
-        self.cr.stroke()
         self.cr.arc(x, y, radius, math.pi-angle/2, math.pi+angle/2)
-        self.cr.stroke()
+        self.cr.fill()
+    
+        # border and text
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+
+        self.cr.arc(x, y, radius, -angle/2, angle/2)
+        self.cr.arc(x, y, radius, math.pi-angle/2, math.pi+angle/2)
 
         # draw the horizontal lines
-        dy = radius * math.sin(angle)
-        self.cr.move_to(x-dy, y-height/2)
-        self.cr.line_to(x+dy, y-height/2)
+        self.cr.move_to(x-dx, y-height/2)
+        self.cr.line_to(x+dx, y-height/2)
 
-        self.cr.move_to(x-dy, y+height/2)
-        self.cr.line_to(x+dy, y+height/2)
+        self.cr.move_to(x-dx, y+height/2)
+        self.cr.line_to(x+dx, y+height/2)
         self.cr.stroke()
 
         # the text
         self.text(x, y, text)
 
-    def box(self, x, y, text):
+    def box(self, x, y, text, color, bgcolor):
         """Draw a box around (x, y), with centered text."""
 
         # the box
         width = w = STEP * 2
         height = h = STEP * 1
 
+        # draw the background
+        self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
+        self.cr.rectangle(x-w/2, y-h/2, w, h)
+        self.cr.fill()
+        self.cr.stroke()
+
+        # draw the border
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         self.cr.rectangle(x-w/2, y-h/2, w, h)
         self.cr.stroke()
 
@@ -257,7 +252,7 @@ class SequenceDiagram(object):
         self.cr.line_to(x, y1)
         self.cr.stroke()
 
-    def text(self, x, y, text, flags = ALIGN_CENTER):
+    def text(self, x, y, text, flags = V_ALIGN_CENTER):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
@@ -270,7 +265,7 @@ class SequenceDiagram(object):
         w = w / pango.SCALE
         h = h / pango.SCALE
         self.cr.save()
-        if flags == ALIGN_BOTTOM:
+        if flags == V_ALIGN_BOTTOM:
             self.cr.translate(x-w/2, y-h)
         else:
             # center
@@ -367,13 +362,10 @@ class SequenceDiagram(object):
         if abs(y1-y0) < 0.001: x = xHead / 2
         else: x = xHead / 3
         y = 0
-        self.text(x, y, text, ALIGN_BOTTOM)
+        self.text(x, y, text, V_ALIGN_BOTTOM)
 
         self.cr.restore()
 
-
-    def createActor(self, x0, y0, x1, y1, text):
-        self.arrow(x0, y0, x1, y1, text)
 
     def arrowHead(self, x, y, flags):
 
@@ -385,8 +377,6 @@ class SequenceDiagram(object):
             # regular size and angle
             arrowSize = STEP/4 # hypothenuse
             hAngle = math.pi / 6
-
-
 
         if ARROW_HEAD_RIGHT in flags: sign = 1
         else: sign = -1
@@ -455,44 +445,45 @@ class SequenceDiagram(object):
                 if node is None:
                     continue
 
-                color = node.options.getColor()
+                nodopts = node.options
+                color = nodopts.getColor()
                 self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         
                 if node.type == NT_ACTOR:
-                    self.box(x, y, node.options['label'])
+                    self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_MSG_SEND:
                     if node.actorSrc == node.actorDest:
                         # message to self
                         y1 = STEP + STEP * node.arrival.y
-                        self.messageToSelf(x, y, y1, node.options['label'])
+                        self.messageToSelf(x, y, y1, nodopts['label'])
 
                     else:
                         x1 = self.getx(node.arrival.x)
                         y1 = STEP + STEP * node.arrival.y
-                        self.arrow(x, y, x1, y1, node.options['label'])
+                        self.arrow(x, y, x1, y1, nodopts['label'])
 
                 elif node.type == NT_MSG_LOST:
                     xArrival = self.matrix.getIndex(node.actorDest)
                     x1 = self.getx(xArrival)
                     y1 = y
-                    self.arrow(x, y, x1, y1, node.options['label'], ARROW_LOST)
+                    self.arrow(x, y, x1, y1, nodopts['label'], ARROW_LOST)
 
                 elif node.type == NT_BOX:
-                    self.boxWithRoundSides(x, y, node.options['label'])
+                    self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_TERMINATE:
                     self.cross(x, y)
 
                 elif node.type == NT_BIDIRECTIONAL:
                     x1 = self.getx(node.arrival.x)
-                    self.bidirectional(x, y, x1, node.options)
+                    self.bidirectional(x, y, x1, nodopts)
 
                 elif node.type == NT_CREATE:
                     if node.arrival.x > node.x: x1 = self.getx(node.arrival.x) - STEP
                     else: x1 = self.getx(node.arrival.x) + STEP
                     y1 = STEP + STEP * node.arrival.y
-                    self.arrow(x, y, x1, y1, node.options['label'])
+                    self.arrow(x, y, x1, y1, nodopts['label'])
 
                 else:
                     pass
@@ -632,7 +623,6 @@ def lexerParse(line):
         =    :    [    ]
 
     """
-    # TODO escape \"
     # states
     ST_READY = 0
     ST_IN_TOKEN = 1 # simple string
@@ -1131,10 +1121,11 @@ def computeGraph(initialActors, data):
             # place new actor
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
-            if nod.options.has_key('actorLabel'):
-                newActor.options['label'] = nod.options['actorLabel']
-            else:
-                newActor.options.add('label', newActor.actorSrc)
+            newActor.options.add('label', newActor.actorSrc) # possibliy oevrwritten by 'actor_label'
+            for key in nod.options:
+                # Options starting by 'actor_' are intended for the new actor
+                if key[0:6] == 'actor_':
+                    newActor.options.add(key[6:], nod.options[key])
 
             nod.arrival = newActor
             graph.addActiveActor(newActor)

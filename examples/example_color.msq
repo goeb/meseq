@@ -6,12 +6,21 @@ actor receiver
 
 [scenario]
 
-    sender -> receiver "Message 1" color=grey
-	sender <- receiver "ACK 1" goto=b color=blue
-	sender -> receiver "Message 2" goto=b color=666
-	:b
-	sender <- receiver "ACK 2" goto=c color=black
-	sender -> receiver "Message N" color=00ff00
+	          receiver -box ... bgcolor=orange color=grey
+    sender -> receiver "Message 1" color=blue goto=1
+:1
+	sender <- receiver "ACK 1" goto=b
+	sender -> receiver "Message 2" goto=b color=blue
+:b
+	sender <- receiver "ACK 2" goto=c
+	sender -> receiver "Message N" color=blue
+:c
+	sender -*             child new color=blue \
+	                                actor_label="a child" \
+	                                actor_color=blue \
+	                                actor_bgcolor=ff8 
+	          receiver -* receiver2
+	sender  <- child ready
 
 
 
