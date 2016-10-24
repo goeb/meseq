@@ -6,7 +6,7 @@ actor receiver
 
 [scenario]
 
-	          receiver -box ... bgcolor=orange color=grey
+	          receiver -box ... bgcolor=orange
     sender -> receiver "Message 1" color=blue goto=1
 :1
 	sender <- receiver "ACK 1" goto=b

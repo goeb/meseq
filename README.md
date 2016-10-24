@@ -9,14 +9,21 @@ Meseq has the following features:
 - box of text on a life line
 - create and destroy actors
 - message to self
+- colors
 - utf-8 encoded messages
+
+# Examples
+
+![Example 1](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_web.msq.png)
+
+![Example with colors](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_color.msq.png)
 
 # Roadmap
 
 Features planned:
 
 * improve layout of messages (text, arrows, ...)
-* add options (text color, background color, lifeline color, font, ...)
+* add options (font, ...)
 
 
 ## License

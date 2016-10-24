@@ -297,13 +297,19 @@ class SequenceDiagram(object):
         if x1 < x0:
             x0, x1 = x1, x0 # swap variables
 
+        # add a white background
+        self.cr.set_source_rgb(1, 1, 1)
+        self.cr.rectangle(x0+STEP/2, y0-STEP/2, x1-x0-STEP, STEP)
+        self.cr.fill()
+
+        # foreground
+        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
         self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
 
         # the lines between the heads
         self.cr.move_to(x0+STEP/2, y0-STEP/2)
         self.cr.line_to(x1-STEP/2, y0-STEP/2)
-        self.cr.stroke()
 
         self.cr.move_to(x0+STEP/2, y0+STEP/2)
         self.cr.line_to(x1-STEP/2, y0+STEP/2)
