@@ -25,6 +25,8 @@ ARROW_HEAD_RIGHT = 2
 ARROW_HEAD_HUGE  = 3
 
 Verbose = 0
+GlobalFont = 'Georgia 10'
+
 def setVerbosity(n):
     global Verbose
     Verbose = n
@@ -45,6 +47,10 @@ def debug(*args):
 
 def error(*args):
     log('Error:', *args)
+
+def setGlobalFont(fontDesc):
+    global GlobalFont
+    GlobalFont = fontDesc
 
 Colors = { 'white'   : 'fff',
            'grey'    : '666',
@@ -257,8 +263,8 @@ class SequenceDiagram(object):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
-        fontname = "Georgia"
-        font = pango.FontDescription(fontname + " " + str(STEP/4))
+        fontname = GlobalFont
+        font = pango.FontDescription(fontname) # + " " + str(STEP/4))
         layout.set_font_description(font)
         layout.set_text(text)
         layout.set_alignment(pango.ALIGN_CENTER)
@@ -734,6 +740,16 @@ def lexerParse(line):
     
     return tokens
 
+def tokenParseFont(tokens):
+    """The tokens a concatenated.
+    The result will be passed to pango.FontDescription.
+    Examples of expected result:
+        sans bold 12
+        serif,monospace bold italic condensed 16
+        normal 10
+    """
+    return ' '.join(tokens)
+
 def tokenParseActor(tokens):
     """Expected tokens:
     actorid [options ...]
@@ -918,6 +934,9 @@ def mscParse(data):
         elif line[0] == 'actor':
             actor = tokenParseActor(line[1:])
             initialActors.append(actor)
+        elif line[0] == 'font':
+            fontDescription = tokenParseFont(line[1:])
+            setGlobalFont(fontDescription)
         else:
             die('Invalid declaration in init: %s' % line)
 

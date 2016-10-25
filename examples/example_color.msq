@@ -3,6 +3,7 @@ actor sender color=blue
 actor ""
 actor "" 
 actor receiver
+font gentium 15
 
 [scenario]
 
@@ -23,7 +24,7 @@ actor receiver
 	sender  <- child ready
 	sender  x- child lost color=grey
 	           child +
-	          receiver <- receiver2 ready
+	          receiver <- receiver2 voilà
 
 
 
