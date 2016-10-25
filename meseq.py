@@ -1147,7 +1147,6 @@ def computeGraph(initialActors, data):
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
-            # TODO check if id of the new one already exists
 
             if graph.hasActor(nod.actorDest):
                 die('Cannot create already existing actor: %s' % nod.actorDest)
