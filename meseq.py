@@ -564,8 +564,9 @@ def lexerConsolidateLines(data):
         currentLine += line
 
         if len(line) and line[-1] == '\\':
-            # concatenate the next line
-            pass
+            # remove the \
+            currentLine = currentLine[:-1]
+            # and let the next line be concatenated (on next oteration)
         else:
             outLines.append(currentLine)
             currentLine = ''
@@ -934,6 +935,7 @@ def mscParse(data):
         elif line[0] == 'actor':
             actor = tokenParseActor(line[1:])
             initialActors.append(actor)
+
         elif line[0] == 'font':
             fontDescription = tokenParseFont(line[1:])
             setGlobalFont(fontDescription)

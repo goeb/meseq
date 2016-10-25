@@ -11,6 +11,7 @@ Meseq has the following features:
 - message to self
 - colors
 - utf-8 encoded messages
+- resolve environment variables
 
 # Examples
 
