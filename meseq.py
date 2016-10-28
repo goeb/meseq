@@ -36,7 +36,7 @@ def log(*args):
     for arg in args:
         if len(msg) != 0: msg += ' '
         msg += '%s' % (arg)
-    print msg
+    print(msg)
 
 def info(*args):
     log('Info:', *args)
@@ -87,7 +87,7 @@ class Color:
             self._blue = ord(colorspec[4:6].decode('hex'))
         except:
             # error, use a grey
-            print "error colorspec=", colorspec
+            error("error colorspec=", colorspec)
             self._red = 0x88
             self._green = 0x88
             self._blue = 0x88
@@ -680,8 +680,8 @@ def lexerParse(line):
                 savedState = ST_IN_TOKEN # after the escape sequence, the state will be ST_IN_TOKEN
                 state = ST_ESCAPED
             elif c == '$':
-				savedState = ST_IN_TOKEN # after the dollar sequence, the state will be ST_IN_TOKEN
-				state = ST_DOLLAR
+                savedState = ST_IN_TOKEN # after the dollar sequence, the state will be ST_IN_TOKEN
+                state = ST_DOLLAR
             else:
                 state = ST_IN_TOKEN
                 currentToken = c
