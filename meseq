@@ -1061,18 +1061,14 @@ class SequenceGraph:
             die('place2: Cannot place on unknown actor: %s' % node2.actorSrc)
 
         if index1 == len(currentRow):
-            # case of a newly create actor
+            # case of a newly created actor
             currentRow.append(None)
 
         if index2 == len(currentRow):
-            # case of a newly create actor
+            # case of a newly created actor
             currentRow.append(None)
 
-        if currentRow[index1] is not None:
-            # this row is busy, take the next one
-            currentRow = self.addNewRow()
-
-        if currentRow[index2] is not None:
+        if currentRow[index1] is not None or currentRow[index2] is not None:
             # this row is busy, take the next one
             currentRow = self.addNewRow()
 
@@ -1167,11 +1163,7 @@ def computeGraph(initialActors, data):
             otherNode.actorSrc = nod.actorDest
             otherNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
             nod.arrival = otherNode
-            graph.addNewRow()
-            graph.addNewRow()
             graph.place2(nod, otherNode)
-            graph.addNewRow()
-            graph.addNewRow()
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
