@@ -131,11 +131,20 @@ class SequenceDiagram(object):
         global STEP
 
         self.matrix = matrix
-        nActors = len(matrix.rows[-1])
-        nMessages = len(matrix.rows)
 
+        nActors = len(matrix.rows[-1])
         nxTiles = 3 * nActors + 1
         STEP = 1.0 * pixWidth / nxTiles
+
+        # pr compute the size taken by the text (for autoadjust)
+
+        # use a temporary cairo context
+        tmpSurface = cairo.SVGSurface(None, 1, 1)
+        self.cr = cairo.Context(tmpSurface)
+        rowsHeight = self.adjustMatrix()
+
+        nMessages = rowsHeight
+
         width = pixWidth;
         nyTiles = nMessages + 2
         height = nyTiles * STEP
@@ -169,6 +178,38 @@ class SequenceDiagram(object):
 
         cr.show_page()
         self.surface.finish()
+
+    def adjustMatrix(self):
+        rowShift = 0
+        for rowid in range(0, len(self.matrix.rows)):
+            # compute the height of the row (after the size of the text)
+            rowHeight = 1 # default
+            debug("rowHeight: ", rowHeight, "STEP: ", STEP)
+            row = self.matrix.rows[rowid]
+            for i in range(len(row)):
+                node = row[i]
+                if node is None: continue
+
+                # shift 'y' of nodes of the current row
+                if hasattr(node, 'y'):
+                    node.y += rowShift - rowid
+
+                # compute height
+                nodopts = node.options
+                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR ]:
+                    wText, hText = self.getTextSize(nodopts['label'])
+                    debug("label: ", nodopts['label'], "hText=", hText, "hText/STEP: ", hText/STEP)
+
+                if hText/STEP > rowHeight: rowHeight = int(hText/STEP)+1
+
+            debug("rowHeight (after): ", rowHeight)
+
+            # store the height of the row for usage by the drawing method
+            row.height = rowHeight
+
+            rowShift += rowHeight
+        return rowShift
+
 
     def init(self):
         self.cr.set_source_rgba(0, 0, 0)
@@ -207,9 +248,9 @@ class SequenceDiagram(object):
 
         # adjust size to text
         wText, hText = self.getTextSize(text)
-        info("text=", text)
-        info("width=", width, "wText=", wText)
-        info("height=", height, "hText=", hText)
+        debug("text=", text)
+        debug("width=", width, "wText=", wText)
+        debug("height=", height, "hText=", hText)
         if wText >= width: width = wText + STEP/4.0
         if hText >= height: height = hText + STEP/4.0
 
@@ -458,13 +499,19 @@ class SequenceDiagram(object):
         lifelinePadding = STEP * 3
         return marginLeft + lifelinePadding * lifelineNum
 
+    def gety(self, yMatrix):
+        marginTop = STEP
+        return marginTop + STEP * yMatrix
+
     def draw(self):
 
         self.init()
 
         y = 0
+        y += STEP
         for row in self.matrix.rows:
-            y += STEP
+            debug("row.height:", row.height)
+            rowHeight = row.height * STEP
 
             # draw lifelines first, so that they appear below the others widgets
             for i in range(len(row)):
@@ -477,7 +524,7 @@ class SequenceDiagram(object):
                     color = node.lifelineOwner.options.getColor()
                     self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
-                    self.lifeLine(x, y-STEP/2, y+STEP/2)
+                    self.lifeLine(x, y-STEP/2, y+STEP/2+rowHeight)
 
                 elif node.type == NT_TERMINATE:
                     color = node.lifelineOwner.options.getColor()
@@ -501,14 +548,14 @@ class SequenceDiagram(object):
                     self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_MSG_SEND:
+                    y1 = self.gety(node.arrival.y)
+
                     if node.actorSrc == node.actorDest:
                         # message to self
-                        y1 = STEP + STEP * node.arrival.y
                         self.messageToSelf(x, y, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                     else:
                         x1 = self.getx(node.arrival.x)
-                        y1 = STEP + STEP * node.arrival.y
                         self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_MSG_LOST:
@@ -527,12 +574,13 @@ class SequenceDiagram(object):
                 elif node.type == NT_CREATE:
                     if node.arrival.x > node.x: x1 = self.getx(node.arrival.x) - STEP
                     else: x1 = self.getx(node.arrival.x) + STEP
-                    y1 = STEP + STEP * node.arrival.y
+                    y1 = self.gety(node.arrival.y)
                     self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 else:
                     pass
 
+            y += rowHeight
 
 
 
@@ -974,6 +1022,12 @@ def mscParse(data):
 
     return initialActors, lifeline
 
+class GraphRow(list):
+    def __init__(self, nColumns = 0):
+        self.height = 2
+        for c in range(0, nColumns):
+            self.append(None)
+
 class SequenceGraph:
     def __init__(self):
         self.labels = {}
@@ -1013,9 +1067,9 @@ class SequenceGraph:
                     self.activeActors[i] = None
                     return
 
-
     def getNewRow(self):
-        return [ None for row in self.activeActors ]
+        nColumns = len(self.activeActors)
+        return GraphRow(nColumns)
 
     def getIndex(self, actorid):
         for i in range(len(self.activeActors)):
@@ -1026,7 +1080,10 @@ class SequenceGraph:
 
     def init(self, initialActors):
         self.activeActors = initialActors
-        self.rows = [ self.activeActors[:] ]
+        row = GraphRow()
+        for a in self.activeActors:
+            row.append(a)
+        self.rows = [ row ]
 
     def getCurrentRow(self):
         """Return a reference to the last row."""
