@@ -199,26 +199,37 @@ class SequenceDiagram(object):
 
 
     def boxWithRoundSides(self, x, y, text, color, bgcolor):
+
         # the box
-        width = w = STEP * 2
-        height = h = STEP * 1
-        radius = STEP
-        angle = math.acos(height/2/radius)
-        dx = radius * math.sin(angle)
+        # default size
+        width = STEP * 2
+        height = STEP * 1
+
+        # adjust size to text
+        wText, hText = self.getTextSize(text)
+        info("text=", text)
+        info("width=", width, "wText=", wText)
+        info("height=", height, "hText=", hText)
+        if wText >= width: width = wText + STEP/4.0
+        if hText >= height: height = hText + STEP/4.0
+
+        radius = width / 2
+        angle = math.asin(height/2/radius)
+        dx = radius * math.cos(angle)
 
         # draw background first
         self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
 
-        self.cr.rectangle(x-dx, y-h/2, 2*dx, h)
-        self.cr.arc(x, y, radius, -angle/2, angle/2)
-        self.cr.arc(x, y, radius, math.pi-angle/2, math.pi+angle/2)
+        self.cr.rectangle(x-dx, y-height/2, 2*dx, height)
+        self.cr.arc(x, y, radius, math.pi-angle, math.pi+angle)
+        self.cr.arc(x, y, radius, -angle, angle)
         self.cr.fill()
     
         # border and text
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
-        self.cr.arc(x, y, radius, -angle/2, angle/2)
-        self.cr.arc(x, y, radius, math.pi-angle/2, math.pi+angle/2)
+        self.cr.arc(x, y, radius, -angle, angle)
+        self.cr.arc(x, y, radius, math.pi-angle, math.pi+angle)
 
         # draw the horizontal lines
         self.cr.move_to(x-dx, y-height/2)
@@ -259,15 +270,26 @@ class SequenceDiagram(object):
         self.cr.line_to(x, y1)
         self.cr.stroke()
 
-    def text(self, x, y, text, color, bgcolor, flags = V_ALIGN_CENTER):
+    def getTextLayout(self, text):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
         fontname = GlobalFont
-        font = pango.FontDescription(fontname) # + " " + str(STEP/4))
+        font = pango.FontDescription(fontname)
         layout.set_font_description(font)
         layout.set_text(text)
         layout.set_alignment(pango.ALIGN_CENTER)
+        return pangocairoCtx, layout
+
+    def getTextSize(self, text):
+        _, layout = self.getTextLayout(text)
+        w, h = layout.get_size()
+        w = w / pango.SCALE
+        h = h / pango.SCALE
+        return w, h
+
+    def text(self, x, y, text, color, bgcolor, flags = V_ALIGN_CENTER):
+        pangocairoCtx, layout = self.getTextLayout(text)
         w, h = layout.get_size()
         w = w / pango.SCALE
         h = h / pango.SCALE
@@ -1145,7 +1167,11 @@ def computeGraph(initialActors, data):
             otherNode.actorSrc = nod.actorDest
             otherNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
             nod.arrival = otherNode
+            graph.addNewRow()
+            graph.addNewRow()
             graph.place2(nod, otherNode)
+            graph.addNewRow()
+            graph.addNewRow()
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
@@ -1203,7 +1229,7 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
     parser.add_argument('-f', '--format', choices=['png', 'svg'], help='format of the generated image (default: png)', default='png')
     parser.add_argument('-o', '--output', help='name of the generated image')
-    parser.add_argument('-w', '--width', help='width in pixel of the generated image (default: 600)', default=600)
+    parser.add_argument('-w', '--width', help='width in pixel of the generated image (default: 600)', default='600')
     args = parser.parse_args()
 
     if args.verbose: setVerbosity(1)
@@ -1225,7 +1251,8 @@ def main():
     else:
         imagefile = args.output
 
-    SequenceDiagram(imagefile, matrix, args.width, imgFormat)
+    width = int(args.width)
+    SequenceDiagram(imagefile, matrix, width, imgFormat)
     info('Generated image: %s' % (imagefile) )
 
 if __name__ == '__main__':
