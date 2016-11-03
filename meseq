@@ -133,7 +133,7 @@ class SequenceDiagram(object):
         self.matrix = matrix
 
         nActors = len(matrix.rows[-1])
-        nxTiles = 3 * nActors + 1
+        nxTiles = 3 * nActors + 1 + 2
         STEP = 1.0 * pixWidth / nxTiles
 
         # pr compute the size taken by the text (for autoadjust)
@@ -495,7 +495,7 @@ class SequenceDiagram(object):
 
     def getx(self, lifelineNum):
         """Convert a lifeline number to an x offset on the grid."""
-        marginLeft = STEP * 2
+        marginLeft = STEP * 3
         lifelinePadding = STEP * 3
         return marginLeft + lifelinePadding * lifelineNum
 
