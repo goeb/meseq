@@ -8,5 +8,5 @@ setup(name='meseq',
       author='Fred Hoerni',
       author_email='fhoerni@free.fr',
       url='https://github.com/goeb/meseq',
-      py_modules=['meseq']
+      scripts=['meseq']
      )
