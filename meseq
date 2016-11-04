@@ -257,8 +257,8 @@ class SequenceDiagram(object):
         debug("text=", text)
         debug("width=", width, "wText=", wText)
         debug("height=", height, "hText=", hText)
-        if wText >= width: width = wText + STEP/4.0
-        if hText >= height: height = hText + STEP/4.0
+        if wText >= width-STEP/2: width = wText + STEP/2 # take a margin because of the rounded part
+        if hText >= height: height = hText + STEP/2
 
         radius = width / 2
         angle = math.asin(height/2/radius)
