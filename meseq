@@ -11,8 +11,10 @@ import argparse
 STEP = None
 
 # Test alignment
-V_ALIGN_BOTTOM = 'V_ALIGN_BOTTOM'
-V_ALIGN_CENTER = 'V_ALIGN_CENTER'
+V_ALIGN_BOTTOM         = 'bottom'
+V_ALIGN_CENTER         = 'center'
+V_ALIGN_TOP            = 'top'
+V_ALIGN_ONE_LINE_ABOVE = 'line-above'
 H_ALIGN_LEFT   = 'left'
 H_ALIGN_RIGHT  = 'right'
 H_ALIGN_CENTER = 'center'
@@ -336,10 +338,14 @@ class SequenceDiagram(object):
         return w, h
 
     def text(self, x, y, text, color, bgcolor, align = TextAlignment()):
+
         pangocairoCtx, layout = self.getTextLayout(text)
         w, h = layout.get_size()
         w = w / pango.SCALE
         h = h / pango.SCALE
+
+        self.dot(x, y) # debug
+        debug("text: ", text, "-- w:", w, "h:", h)
 
         attr = pango.AttrList()
         red = int(bgcolor.red()*65535)
@@ -354,8 +360,18 @@ class SequenceDiagram(object):
         else:                               layout.set_alignment(pango.ALIGN_CENTER)
 
         self.cr.save()
+        
         if align.valign == V_ALIGN_BOTTOM:
             self.cr.translate(x-w/2, y-h)
+        
+        elif align.valign == V_ALIGN_TOP:
+            self.cr.translate(x-w/2, y)
+
+        elif align.valign == V_ALIGN_ONE_LINE_ABOVE:
+            firstLine = layout.get_line_readonly(0)
+            ((_,_,_,_),(_,_,_,firstLineHeight)) = firstLine.get_pixel_extents()
+            self.cr.translate(x-w/2, y-firstLineHeight)
+
         else:
             # center
             self.cr.translate(x-w/2, y-h/2)
@@ -436,7 +452,7 @@ class SequenceDiagram(object):
         if abs(y1-y0) < 0.001: x = xHead / 2
         else: x = xHead / 3
         y = 0
-        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_BOTTOM))
+        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_ONE_LINE_ABOVE))
 
         # the main line of the arrow
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())

@@ -3,8 +3,8 @@ actor server
 
 [scenario]
     server -* worker1 "hello\n1\n2\n3\n4"
-    server -* worker2 actor_label="The worker #2\na\nb\nc\nd"
-	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..."
+    server -* worker2 actor_label="The worker #2\na\nb\nc\nd" halign=right
+	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..." halign=left
     server -* worker3
 	worker1 +
 	worker2 -* worker1
