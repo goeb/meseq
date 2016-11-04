@@ -291,26 +291,33 @@ class SequenceDiagram(object):
         # the text
         self.text(x, y, text, color, bgcolor, TextAlignment(halign=halign))
 
-    def box(self, x, y, text, color, bgcolor):
+    def box(self, x, y, text, color, bgcolor, halign):
         """Draw a box around (x, y), with centered text."""
 
-        # the box
-        width = w = STEP * 2
-        height = h = STEP * 1
+        # size of the box
+        width = STEP * 2
+        height = STEP * 1
+
+        # adjust size to text
+        wText, hText = self.getTextSize(text)
+        if wText >= width-STEP/2: width = wText + STEP/2
+        if hText >= height: height = hText + STEP/2
 
         # draw the background
         self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
-        self.cr.rectangle(x-w/2, y-h/2, w, h)
+        self.cr.rectangle(x-width/2, y-STEP/2, width, height)
         self.cr.fill()
         self.cr.stroke()
 
-        # draw the border
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
-        self.cr.rectangle(x-w/2, y-h/2, w, h)
-        self.cr.stroke()
 
         # the text
-        self.text(x, y, text, color, bgcolor)
+        self.text(x, y-STEP/4, text, color, bgcolor, TextAlignment(halign=halign, valign=V_ALIGN_TOP))
+
+        # draw the border
+        self.cr.rectangle(x-width/2, y-STEP/2, width, height)
+        self.cr.stroke()
+
 
     
     def lifeLine(self, x, y0, y1):
@@ -344,9 +351,6 @@ class SequenceDiagram(object):
         w, h = layout.get_size()
         w = w / pango.SCALE
         h = h / pango.SCALE
-
-        self.dot(x, y) # debug
-        debug("text: ", text, "-- w:", w, "h:", h)
 
         attr = pango.AttrList()
         red = int(bgcolor.red()*65535)
@@ -572,7 +576,7 @@ class SequenceDiagram(object):
                 self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         
                 if node.type == NT_ACTOR:
-                    self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+                    self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
 
                 elif node.type == NT_MSG_SEND:
                     y1 = self.gety(node.arrival.y)
