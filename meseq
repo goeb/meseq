@@ -13,9 +13,9 @@ STEP = None
 # Test alignment
 V_ALIGN_BOTTOM = 'V_ALIGN_BOTTOM'
 V_ALIGN_CENTER = 'V_ALIGN_CENTER'
-H_ALIGN_LEFT   = 'H_ALIGN_LEFT'
-H_ALIGN_RIGHT  = 'H_ALIGN_RIGHT'
-H_ALIGN_CENTER = 'H_ALIGN_CENTER'
+H_ALIGN_LEFT   = 'left'
+H_ALIGN_RIGHT  = 'right'
+H_ALIGN_CENTER = 'center'
 
 ARROW_NORMAL = 1 << 3
 ARROW_LOST   = 1 << 4
@@ -52,9 +52,14 @@ def setGlobalFont(fontDesc):
     global GlobalFont
     GlobalFont = fontDesc
 
+class TextAlignment:
+    def __init__(self, halign = H_ALIGN_CENTER, valign = V_ALIGN_CENTER):
+        self.halign = halign
+        self.valign = valign
+
 Colors = { 'white'   : 'fff',
-           'grey'    : '666',
-           'gray'    : '666',
+           'grey'    : '444',
+           'gray'    : '444',
            'red'     : 'F00',
            'orange'  : 'fb0',
            'yellow'  : 'ff0',
@@ -107,6 +112,7 @@ class Options(dict):
         self['label'] = ''
         self['color'] = 'black'
         self['bgcolor'] = 'white'
+        self['halign'] = H_ALIGN_CENTER
 
     def update(self, otherOpts):
         """Options are taken from 'otherOpts', that must be a dictionnary."""
@@ -239,7 +245,7 @@ class SequenceDiagram(object):
         self.cr.fill()
 
 
-    def boxWithRoundSides(self, x, y, text, color, bgcolor):
+    def boxWithRoundSides(self, x, y, text, color, bgcolor, halign):
 
         # the box
         # default size
@@ -281,7 +287,7 @@ class SequenceDiagram(object):
         self.cr.stroke()
 
         # the text
-        self.text(x, y, text, color, bgcolor)
+        self.text(x, y, text, color, bgcolor, TextAlignment(halign=halign))
 
     def box(self, x, y, text, color, bgcolor):
         """Draw a box around (x, y), with centered text."""
@@ -329,7 +335,7 @@ class SequenceDiagram(object):
         h = h / pango.SCALE
         return w, h
 
-    def text(self, x, y, text, color, bgcolor, flags = V_ALIGN_CENTER):
+    def text(self, x, y, text, color, bgcolor, align = TextAlignment()):
         pangocairoCtx, layout = self.getTextLayout(text)
         w, h = layout.get_size()
         w = w / pango.SCALE
@@ -343,8 +349,12 @@ class SequenceDiagram(object):
         attr.insert(bcAttribute)
         layout.set_attributes(attr)
 
+        if align.halign == H_ALIGN_LEFT:    layout.set_alignment(pango.ALIGN_LEFT)
+        elif align.halign == H_ALIGN_RIGHT: layout.set_alignment(pango.ALIGN_RIGHT)
+        else:                               layout.set_alignment(pango.ALIGN_CENTER)
+
         self.cr.save()
-        if flags == V_ALIGN_BOTTOM:
+        if align.valign == V_ALIGN_BOTTOM:
             self.cr.translate(x-w/2, y-h)
         else:
             # center
@@ -426,7 +436,7 @@ class SequenceDiagram(object):
         if abs(y1-y0) < 0.001: x = xHead / 2
         else: x = xHead / 3
         y = 0
-        self.text(x, y, text, color, bgcolor, V_ALIGN_BOTTOM)
+        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_BOTTOM))
 
         # the main line of the arrow
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
@@ -565,7 +575,7 @@ class SequenceDiagram(object):
                     self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), ARROW_LOST)
 
                 elif node.type == NT_BOX:
-                    self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+                    self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
 
                 elif node.type == NT_BIDIRECTIONAL:
                     x1 = self.getx(node.arrival.x)
