@@ -315,6 +315,7 @@ class SequenceDiagram(object):
     
     def lifeLine(self, x, y0, y1):
 
+        debug("lifeLine(%d, %d, %d" % (x, y0, y1))
         self.cr.move_to(x, y0)
         self.cr.line_to(x, y1)
         self.cr.stroke()
@@ -546,11 +547,11 @@ class SequenceDiagram(object):
 
                 if node is None: continue
 
-                if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL ]:
+                if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_ACTOR ]:
                     color = node.lifelineOwner.options.getColor()
                     self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
-                    self.lifeLine(x, y-STEP/2, y+STEP/2+rowHeight)
+                    self.lifeLine(x, y-STEP/2, y-STEP/2+rowHeight)
 
                 elif node.type == NT_TERMINATE:
                     color = node.lifelineOwner.options.getColor()
@@ -630,6 +631,9 @@ class Node:
         self.actorDest = None
         self.options = Options()
         self.id = None # used for 'goto'
+
+        if self.type == NT_ACTOR: self.lifelineOwner = self
+        else: self.lifelineOwner = None
 
     def __repr__(self):
         return '<%s:%s->%s(%s)>' % (self.type, self.actorSrc, self.actorDest, self.options['label'])

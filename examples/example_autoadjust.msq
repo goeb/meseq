@@ -7,10 +7,11 @@ actor server
 	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..." halign=left
     server -* worker3
 	worker1 +
-	worker2 -* worker1
+	worker2 -* worker1 "new..."
 	worker1 +
 	worker3 -* worker1
 	worker3 +
+:
                                                                         
 
 
