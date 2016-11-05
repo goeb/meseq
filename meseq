@@ -318,7 +318,7 @@ class SequenceDiagram(object):
         self.cr.rectangle(x-width/2, y-STEP/2, width, height)
         self.cr.stroke()
 
-
+        return width, height
     
     def lifeLine(self, x, y0, y1):
 
@@ -576,7 +576,19 @@ class SequenceDiagram(object):
                 self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         
                 if node.type == NT_ACTOR:
-                    self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
+                    # the box
+                    w, h = self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
+
+                    # the arrow
+                    if hasattr(node, 'originator'):
+                        originator = node.originator
+                        origOpts = originator.options
+                        x0 = self.getx(originator.x)
+                        y0 = self.gety(originator.y)
+                        if originator.x < node.x: x1 = self.getx(node.x) - w/2
+                        else: x1 = self.getx(node.x) + w/2
+                        y1 = self.gety(node.y)
+                        self.arrow(x0, y0, x1, y1, origOpts['label'], origOpts.getColor(), origOpts.getBgcolor())
 
                 elif node.type == NT_MSG_SEND:
                     y1 = self.gety(node.arrival.y)
@@ -603,10 +615,9 @@ class SequenceDiagram(object):
                     self.bidirectional(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
 
                 elif node.type == NT_CREATE:
-                    if node.arrival.x > node.x: x1 = self.getx(node.arrival.x) - STEP
-                    else: x1 = self.getx(node.arrival.x) + STEP
-                    y1 = self.gety(node.arrival.y)
-                    self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+                    # do not draw anything
+                    # the arrow and the actor will be drawn on the node NT_ACTOR
+                    pass
 
                 else:
                     pass
@@ -1268,6 +1279,7 @@ def computeGraph(initialActors, data):
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
             newActor.options.add('label', newActor.actorSrc) # possibliy oevrwritten by 'actor_label'
+            newActor.originator = nod
             for key in nod.options:
                 # Options starting by 'actor_' are intended for the new actor
                 if key[0:6] == 'actor_':
