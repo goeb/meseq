@@ -301,7 +301,7 @@ class SequenceDiagram(object):
         # adjust size to text
         wText, hText = self.getTextSize(text)
         if wText >= width-STEP/2: width = wText + STEP/2
-        if hText >= height: height = hText + STEP/2
+        if hText >= height: height = STEP * int(1+hText/STEP)
 
         # draw the background
         self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
@@ -312,7 +312,7 @@ class SequenceDiagram(object):
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
         # the text
-        self.text(x, y-STEP/4, text, color, bgcolor, TextAlignment(halign=halign, valign=V_ALIGN_TOP))
+        self.text(x, y-STEP/2+height/2, text, color, bgcolor, TextAlignment(halign=halign, valign=V_ALIGN_CENTER))
 
         # draw the border
         self.cr.rectangle(x-width/2, y-STEP/2, width, height)
@@ -375,7 +375,7 @@ class SequenceDiagram(object):
         elif align.valign == V_ALIGN_ONE_LINE_ABOVE:
             firstLine = layout.get_line_readonly(0)
             ((_,_,_,_),(_,_,_,firstLineHeight)) = firstLine.get_pixel_extents()
-            self.cr.translate(x-w/2, y-firstLineHeight)
+            self.cr.translate(x-w/2, y-firstLineHeight*0.9)
 
         else:
             # center
@@ -522,7 +522,7 @@ class SequenceDiagram(object):
         self.arrowHead(x0, y1, [ARROW_HEAD_LEFT])
 
         # set text
-        self.text(x0 + STEP*1.5, y0+STEP*0.5, text, color, bgcolor)
+        self.text(x0 + STEP*1.5, y0+STEP*0.5, text, color, bgcolor, TextAlignment(halign=H_ALIGN_LEFT))
 
     def getx(self, lifelineNum):
         """Convert a lifeline number to an x offset on the grid."""
