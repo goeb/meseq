@@ -5,10 +5,13 @@ actor server
     server -* worker1 "hello\n1\n2\n3\n4"
     server -* worker2 actor_label="The worker #2\na\nb\nc\nd" halign=right
 	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..." halign=left
+	server -box "..."
     server -* worker3
 	worker1 +
 	worker2 -* worker1 "new..." actor_label="Worker1\nThis is a big one..."
 	worker1 +
+    server -box "...(2)"
+    server -box "...(3)"
 	worker3 -* worker1
 	worker3 +
 :

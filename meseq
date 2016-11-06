@@ -204,7 +204,7 @@ class SequenceDiagram(object):
 
                 # compute height
                 nodopts = node.options
-                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR ]:
+                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR, NT_BOX ]:
                     wText, hText = self.getTextSize(nodopts['label'])
                     debug("label: ", nodopts['label'], "hText=", hText, "hText/STEP: ", hText/STEP)
 
@@ -256,40 +256,41 @@ class SequenceDiagram(object):
 
         # adjust size to text
         wText, hText = self.getTextSize(text)
-        debug("text=", text)
-        debug("width=", width, "wText=", wText)
-        debug("height=", height, "hText=", hText)
         if wText >= width-STEP/2: width = wText + STEP/2 # take a margin because of the rounded part
-        if hText >= height: height = hText + STEP/2
+        if hText >= height: height = STEP * int(1+hText/STEP)
 
         radius = width / 2
         angle = math.asin(height/2/radius)
         dx = radius * math.cos(angle)
 
+        # adjust y
+        y -= STEP/2
+        # 'y' specifies now the top of the box
+
         # draw background first
         self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
 
-        self.cr.rectangle(x-dx, y-height/2, 2*dx, height)
-        self.cr.arc(x, y, radius, math.pi-angle, math.pi+angle)
-        self.cr.arc(x, y, radius, -angle, angle)
+        self.cr.rectangle(x-dx, y, 2*dx, height)
+        self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
+        self.cr.arc(x, y+height/2, radius, -angle, angle)
         self.cr.fill()
     
         # border and text
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
 
-        self.cr.arc(x, y, radius, -angle, angle)
-        self.cr.arc(x, y, radius, math.pi-angle, math.pi+angle)
+        self.cr.arc(x, y+height/2, radius, -angle, angle)
+        self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
 
         # draw the horizontal lines
-        self.cr.move_to(x-dx, y-height/2)
-        self.cr.line_to(x+dx, y-height/2)
+        self.cr.move_to(x-dx, y)
+        self.cr.line_to(x+dx, y)
 
-        self.cr.move_to(x-dx, y+height/2)
-        self.cr.line_to(x+dx, y+height/2)
+        self.cr.move_to(x-dx, y+height)
+        self.cr.line_to(x+dx, y+height)
         self.cr.stroke()
 
         # the text
-        self.text(x, y, text, color, bgcolor, TextAlignment(halign=halign))
+        self.text(x, y+height/2, text, color, bgcolor, TextAlignment(halign=halign))
 
     def box(self, x, y, text, color, bgcolor, halign):
         """Draw a box around (x, y), with centered text."""
@@ -534,6 +535,10 @@ class SequenceDiagram(object):
         marginTop = STEP
         return marginTop + STEP * yMatrix
 
+    def debug(self, y, msg):
+        self.dot(0, y)
+        self.text(0, y, msg, Color('black'), Color('white'))
+
     def draw(self):
 
         self.init()
@@ -567,6 +572,7 @@ class SequenceDiagram(object):
             for i in range(len(row)):
                 x = self.getx(i)
                 node = row[i]
+                #self.debug(y, 'xx')
 
                 if node is None:
                     continue
