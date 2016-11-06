@@ -208,7 +208,7 @@ class SequenceDiagram(object):
                     wText, hText = self.getTextSize(nodopts['label'])
                     debug("label: ", nodopts['label'], "hText=", hText, "hText/STEP: ", hText/STEP)
 
-                if hText/STEP > rowHeight: rowHeight = int(hText/STEP)+1
+                    if hText/STEP > rowHeight: rowHeight = int(hText/STEP)+1
 
             debug("rowHeight (after): ", rowHeight)
 
