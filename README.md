@@ -24,7 +24,7 @@ Meseq has the following features:
 Features planned:
 
 * improve layout of messages (text, arrows, ...)
-
+* add other styles of boxes, side notes, groups
 
 ## License
 
