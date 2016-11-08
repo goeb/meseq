@@ -15,9 +15,9 @@ Meseq has the following features:
 
 # Examples
 
-![Example 1](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_web.msq.png)
+![Example 1](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_web.png)
 
-![Example with colors](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_color.msq.png)
+![Example with colors](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_color.png)
 
 # Roadmap
 
