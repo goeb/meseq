@@ -1096,7 +1096,7 @@ class MsqFile:
         self.includedSections.append(section)
 
         if not self.sections.has_key(section):
-            die('%s: No such section, thus cannot include' % (section) )
+            die('%s: No such file or section, thus cannot include' % (section) )
 
         n = len(self.sections[section])
         i = 0
