@@ -665,12 +665,8 @@ class Matrix:
 def readInput(file):
     pass
 
-class MscDescription:
-    def __init__(self):
-        self.lines = []
-
 def die(msg):
-    sys.stderr.write(msg + '\n')
+    sys.stderr.write('Error: ' + msg + '\n')
     sys.exit(1)
 
 def lexerConsolidateLines(data):
@@ -1026,24 +1022,126 @@ def tokenParseScenarioLine(line):
     return node
 
 
-def mscParse(data):
+    
+class MsqLine:
+    pass
+
+INCLUDE_FILE_OK        = 1
+INCLUDE_FILE_NOT_FOUND = 2
+
+class MsqFile:
+    def __init__(self):
+        self.sections = {}
+        self.currentSection = None
+        self.includedFiles = []
+        self.includedSections = []
+
+    def load(self, filename):
+        f = open(filename)
+        data = f.read()
+        f.close()
+        return data
+        
+    def preprocess(self, filename):
+        """Load a meseq file, and preprocess:
+            - consolidate multi-lines lines
+            - resolve include files
+        """
+        # detect cyclic includes
+        if filename in self.includedFiles:
+            die('Cyclic include of file: %s' % (filename))
+        self.includedFiles.append(filename)
+
+        data = self.load(filename)
+        lines = lexerConsolidateLines(data)
+        self.tokenizeLines(lines)
+
+        self.includedFiles.remove(filename)
+
+    def include(self, token):
+        """If token is an existing file, include it.
+        Else keep it unchanged.
+        """
+        if os.path.exists(token):
+            self.preprocess(token)
+            return INCLUDE_FILE_OK
+        else:
+            return INCLUDE_FILE_NOT_FOUND
+
+    def tokenizeLines(self, lines):
+        for line in lines:
+            tokens = lexerParse(line)
+            if len(tokens) == 0: continue
+            elif tokens[0] == '-include':
+                if len(tokens) != 2: die('Invalid include (%s)' % (tokens) )
+                r = self.include(tokens[1])
+                if r == INCLUDE_FILE_NOT_FOUND:
+                    self.sections[self.currentSection].append(tokens)
+
+            elif tokens[0] == '[':
+                self.currentSection = parseSectionName(tokens)
+                if self.sections.has_key(self.currentSection):
+                    die('Section redeclared: ' + self.currentSection)
+                self.sections[self.currentSection] = []
+
+            else:
+                self.sections[self.currentSection].append(tokens)
+
+        return tokens
+
+    def preprocessSection(self, section):
+        # detect cyclic includes
+        if section in self.includedSections:
+            die('Cyclic include of section: %s' % (section))
+        self.includedSections.append(section)
+
+        if not self.sections.has_key(section):
+            die('%s: No such section, thus cannot include' % (section) )
+
+        n = len(self.sections[section])
+        i = 0
+        while i < n:
+            line = self.sections[section][i]
+            if line[0] == '-include':
+                if len(line) != 2:
+                    die('Invalid syntax for -include: %s' % (line) )
+                # do the include
+                includedSection = line[1]
+                self.preprocessSection(includedSection)
+                for includedLine in self.sections[includedSection]:
+                    self.sections[section].insert(i, includedLine)
+                    i += 1
+                    n += 1
+
+                # remove the '-include' line
+                x = self.sections[section].pop(i)
+                # no need ito increment i, as the '-include' line has been removed
+                n -= 1
+
+            else: i += 1
+
+        self.includedSections.remove(section)
+
+    def preprocessIncludedSections(self):
+        """Process remaining '-include', and resolve inclusion of sections.
+        """
+        # Only preprocess the 2 sections that are really used
+        # ie: the 2 entry points 'init' and 'scenario'
+        self.preprocessSection('init')
+        self.preprocessSection('scenario')
+                
+
+
+
+def mscParse(filename):
     """Parse the input msq file and extract the tokens.
     """
-    lines = lexerConsolidateLines(data)
-    dataTokens = {}
-    currentSection = ''
-    mscdesc = MscDescription()
-    for line in lines:
-        tokens = lexerParse(line)
-        if len(tokens) == 0: continue
-        elif tokens[0] == '[':
-            currentSection = parseSectionName(tokens)
-            dataTokens[currentSection] = []
-        else:
-            dataTokens[currentSection].append(tokens)
+    msq = MsqFile()
+    msq.preprocess(filename)
+    msq.preprocessIncludedSections()
 
     initialActors = []
-    for line in dataTokens['init']:
+    for line in msq.sections['init']:
         if line[0] == 'actors':
             info("""
             DEPRECATED:
@@ -1068,7 +1166,7 @@ def mscParse(data):
 
     # parse section 'scenario'
     lifeline = []
-    for line in dataTokens['scenario']:
+    for line in msq.sections['scenario']:
         lifeline.append(tokenParseScenarioLine(line))
 
     return initialActors, lifeline
@@ -1336,10 +1434,7 @@ def main():
     if args.verbose: setVerbosity(1)
 
     filename = args.file[0]
-    f = open(filename)
-    inputData = f.read()
-
-    initialActors, data = mscParse(inputData)
+    initialActors, data = mscParse(filename)
     debug('initialActors=', initialActors)
     debug('data=', data)
     matrix = computeGraph(initialActors, data)

@@ -1,0 +1,16 @@
+
+[init]
+actor server
+
+[scenario]
+
+server -box "init"
+-include demo_include_1.msq
+-include demo_include_1.msq
+
+
+
+[i0_begin]
+server -box "i0_begin"
+
+-include demo_include_2.msq

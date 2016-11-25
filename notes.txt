@@ -1,7 +1,5 @@
 ---------------- demo.msc ------------
 [init]
-# old was: actors host1="Host 1" excom="example.com"
-
 actor host1 "Host 1"
 actor x type=hidden
 actor excom example.com
@@ -20,12 +18,18 @@ actor excom example.com
 	: 
 	:timer_expiry
 	excom -endblock block1 "some text"
-	
+
+-include sub1
+-include sub.msq
+
+
 	host1 -* other "create" actor="other host"
 	other -box "do something"
 	other -> host1 "done"
 	other +
 	host1 -note "some text" align=right
+
+[sub1]
 
 ---------------- demo.msc ------------
 
