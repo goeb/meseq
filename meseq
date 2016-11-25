@@ -1035,11 +1035,25 @@ class MsqFile:
         self.currentSection = None
         self.includedFiles = []
         self.includedSections = []
+        self.currentPath = []
+
+
+    def getWorkingDir(self):
+        return self.currentPath[0]
+
+    def pushWorkingDir(self, path):
+        self.currentPath.insert(0, path)
+
+    def popWorkingDir(self):
+        self.currentPath.pop(0)
 
     def load(self, filename):
-        f = open(filename)
-        data = f.read()
-        f.close()
+        try:
+            f = open(filename)
+            data = f.read()
+            f.close()
+        except:
+            die('Cannot load file: %s' % filename)
         return data
         
     def preprocess(self, filename):
@@ -1047,22 +1061,34 @@ class MsqFile:
             - consolidate multi-lines lines
             - resolve include files
         """
-        # detect cyclic includes
-        if filename in self.includedFiles:
-            die('Cyclic include of file: %s' % (filename))
-        self.includedFiles.append(filename)
+        # if relative path, be relative to current file
+        if os.path.isabs(filename):
+            path = filename
+        elif len(self.currentPath) == 0:
+            path = filename
+        else:
+            path = os.path.join(self.getWorkingDir(), filename)
 
-        data = self.load(filename)
+        self.pushWorkingDir(os.path.dirname(path))
+
+        # detect cyclic includes
+        abspath = os.path.abspath(path)
+        if abspath in self.includedFiles:
+            die('Cyclic include of file: %s' % (abspath))
+        self.includedFiles.append(abspath)
+
+        data = self.load(path)
         lines = lexerConsolidateLines(data)
         self.tokenizeLines(lines)
 
-        self.includedFiles.remove(filename)
+        self.includedFiles.remove(abspath)
+        self.popWorkingDir()
 
     def include(self, token):
         """If token is an existing file, include it.
         Else keep it unchanged.
         """
-        if os.path.exists(token):
+        if os.path.exists(os.path.join(self.currentPath[0], token)):
             self.preprocess(token)
             return INCLUDE_FILE_OK
         else:
