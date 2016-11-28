@@ -225,11 +225,16 @@ class SequenceDiagram(object):
         self.cr.set_source_rgba(0, 0, 0)
         self.cr.set_line_width(STEP/40)
 
-    def cross(self, x, y, color):
+    def cross(self, x, y, color, text = None):
         # draw an 'x'
         self.cr.save()
         self.cr.set_source_rgb(color.red(), color.green(), color.blue())
         self.cr.translate(x, y)
+
+        if text is not None:
+            # write the text
+            self.text(STEP/2, 0, text, color, Color('white'), TextAlignment(halign=H_ALIGN_LEFT))
+
         self.cr.rotate(math.pi/4)
 
         size = STEP/5
@@ -571,7 +576,7 @@ class SequenceDiagram(object):
                     color = node.lifelineOwner.options.getColor()
                     self.cr.set_source_rgb(color.red(), color.green(), color.blue())
                     self.lifeLine(x, y-STEP/2, y)
-                    self.cross(x, y, color)
+                    self.cross(x, y, color, node.options['label'])
 
             # now draw the other widgets
             for i in range(len(row)):
@@ -992,6 +997,9 @@ def tokenParseScenarioLine(line):
     elif len(line) >= 2 and line[1] == '+':
         node = Node(NT_TERMINATE)
         node.actorSrc = line[0]
+        # parse the options
+        options = tokenParseKeyEqualValue(line[2:])
+        node.options.update(options)
         return node
 
     elif len(line) < 3:
