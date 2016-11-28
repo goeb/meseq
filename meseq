@@ -18,6 +18,8 @@ V_ALIGN_ONE_LINE_ABOVE = 'line-above'
 H_ALIGN_LEFT   = 'left'
 H_ALIGN_RIGHT  = 'right'
 H_ALIGN_CENTER = 'center'
+# center_left used to align to left side of a box
+H_ALIGN_LEFT_CENTER = 'center_left' # center the text, and then align left
 
 ARROW_NORMAL = 1 << 3
 ARROW_LOST   = 1 << 4
@@ -363,24 +365,27 @@ class SequenceDiagram(object):
 
         if align.halign == H_ALIGN_LEFT:    layout.set_alignment(pango.ALIGN_LEFT)
         elif align.halign == H_ALIGN_RIGHT: layout.set_alignment(pango.ALIGN_RIGHT)
-        else:                               layout.set_alignment(pango.ALIGN_CENTER)
+        else:
+            x -= w/2
+            if align.halign == H_ALIGN_LEFT_CENTER: layout.set_alignment(pango.ALIGN_LEFT)
+            else:                                   layout.set_alignment(pango.ALIGN_CENTER)
 
         self.cr.save()
         
         if align.valign == V_ALIGN_BOTTOM:
-            self.cr.translate(x-w/2, y-h)
+            self.cr.translate(x, y-h)
         
         elif align.valign == V_ALIGN_TOP:
-            self.cr.translate(x-w/2, y)
+            self.cr.translate(x, y)
 
         elif align.valign == V_ALIGN_ONE_LINE_ABOVE:
             firstLine = layout.get_line_readonly(0)
             ((_,_,_,_),(_,_,_,firstLineHeight)) = firstLine.get_pixel_extents()
-            self.cr.translate(x-w/2, y-firstLineHeight*0.9)
+            self.cr.translate(x, y-firstLineHeight*0.9)
 
         else:
-            # center
-            self.cr.translate(x-w/2, y-h/2)
+            # center vertically
+            self.cr.translate(x, y-h/2)
 
 
         pangocairoCtx.update_layout(layout)

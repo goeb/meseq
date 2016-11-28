@@ -4,7 +4,7 @@ actor server
 [scenario]
     server -* worker1 "hello\n1\n2\n3\n4"
     server -* worker2 actor_label="The worker #2\na\nb\nc\nd" halign=right
-	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..." halign=left
+	server -box "The server does here something\none\ntwo\nthree\nfour\nfive..." halign=center_left
 	server -box "..."
     server -* worker3
 	worker1 +
