@@ -9,3 +9,6 @@ view:
 
 %.png: %.msq meseq
 	./meseq -o $@ $<
+
+clean:
+	$(RM) $(PNGS)
