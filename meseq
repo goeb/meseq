@@ -30,6 +30,7 @@ ARROW_HEAD_HUGE  = 3
 
 Verbose = 0
 GlobalFont = 'Georgia 10'
+GlobalBgcolor = 'white'
 
 def setVerbosity(n):
     global Verbose
@@ -56,6 +57,10 @@ def setGlobalFont(fontDesc):
     global GlobalFont
     GlobalFont = fontDesc
 
+def setGlobalBgcolor(c):
+    global GlobalBgcolor
+    GlobalBgcolor = c
+
 class TextAlignment:
     def __init__(self, halign = H_ALIGN_CENTER, valign = V_ALIGN_CENTER):
         self.halign = halign
@@ -81,6 +86,7 @@ class Color:
             - a 6-hex-digit string RGB. Eg: '0000FF'
             - a color name: 'red', 'green', etc. (see Colors)
         """
+
         colorspec = colorspec.lower()
 
         if Colors.has_key(colorspec):
@@ -110,12 +116,15 @@ class Color:
     def blue(self):
         return self._blue * 1.0 / 0xFF
 
+    def __str__(self):
+        return "<Color:%02x%02x%02x>" % (self._red, self._green, self._blue)
+
 
 class Options(dict):
     def __init__(self):
         self['label'] = ''
         self['color'] = 'black'
-        self['bgcolor'] = 'white'
+        self['bgcolor'] = None
         self['halign'] = H_ALIGN_CENTER
 
     def update(self, otherOpts):
@@ -133,11 +142,20 @@ class Options(dict):
         return Color(self['color'])
 
     def getBgcolor(self):
+        if self['bgcolor'] in [ None, 'none' ]:
+            if GlobalBgcolor is None: return None
+            else: return Color(GlobalBgcolor)
         return Color(self['bgcolor'])
+
+def setSourceColor(cairoCtx, colorObject):
+    if colorObject is not None:
+        cairoCtx.set_source_rgb(colorObject.red(), colorObject.green(), colorObject.blue())
+    else:
+        cairoCtx.set_source_rgba(0, 0, 0, 0)
 
 class SequenceDiagram(object):
 
-    def __init__(self, filename, matrix, pixWidth, imgFormat):
+    def __init__(self, filename, matrix, pixWidth, imgFormat, mscInit):
         global STEP
 
         self.matrix = matrix
@@ -170,17 +188,21 @@ class SequenceDiagram(object):
         #cr.scale(width/100.0, height/100.0)
         cr.set_line_width(STEP/40)
 
-        # draw white background
-        cr.rectangle(0, 0, width, height)
-        cr.set_source_rgb(1, 1, 1)
-        cr.fill()
+        if GlobalBgcolor:
+            # draw background
+            cr.rectangle(0, 0, width, height)
+            c = Color(GlobalBgcolor)
+            setSourceColor(cr, c)
+            cr.fill()
 
         self.draw()
 
-        cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
-        cr.set_source_rgb(0, 0, 0)
-        cr.rectangle(0, 0, width, height)
-        cr.stroke()
+        if mscInit.border:
+            # draw black border
+            cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
+            setSourceColor(cr, Color('black'))
+            cr.rectangle(0, 0, width, height)
+            cr.stroke()
 
 
         if imgFormat == 'png':
@@ -222,18 +244,18 @@ class SequenceDiagram(object):
 
 
     def init(self):
-        self.cr.set_source_rgba(0, 0, 0)
+        setSourceColor(self.cr, Color('black'))
         self.cr.set_line_width(STEP/40)
 
     def cross(self, x, y, color, text = None):
         # draw an 'x'
         self.cr.save()
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
         self.cr.translate(x, y)
 
         if text is not None:
             # write the text
-            self.text(STEP/2, 0, text, color, Color('white'), TextAlignment(halign=H_ALIGN_LEFT))
+            self.text(STEP/2, 0, text, color, Color(GlobalBgcolor), TextAlignment(halign=H_ALIGN_LEFT))
 
         self.cr.rotate(math.pi/4)
 
@@ -267,7 +289,9 @@ class SequenceDiagram(object):
         if hText >= height: height = STEP * int(1+hText/STEP)
 
         radius = width / 2
-        angle = math.asin(height/2/radius)
+        sinus = height/2/radius
+
+        angle = math.asin(sinus)
         dx = radius * math.cos(angle)
 
         # adjust y
@@ -275,7 +299,7 @@ class SequenceDiagram(object):
         # 'y' specifies now the top of the box
 
         # draw background first
-        self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
+        setSourceColor(self.cr, bgcolor)
 
         self.cr.rectangle(x-dx, y, 2*dx, height)
         self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
@@ -283,7 +307,7 @@ class SequenceDiagram(object):
         self.cr.fill()
     
         # border and text
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
 
         self.cr.arc(x, y+height/2, radius, -angle, angle)
         self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
@@ -312,12 +336,12 @@ class SequenceDiagram(object):
         if hText >= height: height = STEP * int(1+hText/STEP)
 
         # draw the background
-        self.cr.set_source_rgb(bgcolor.red(), bgcolor.green(), bgcolor.blue())
+        setSourceColor(self.cr, bgcolor)
         self.cr.rectangle(x-width/2, y-STEP/2, width, height)
         self.cr.fill()
         self.cr.stroke()
 
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
 
         # the text
         self.text(x, y-STEP/2+height/2, text, color, bgcolor, TextAlignment(halign=halign, valign=V_ALIGN_CENTER))
@@ -361,11 +385,16 @@ class SequenceDiagram(object):
         h = h / pango.SCALE
 
         attr = pango.AttrList()
-        red = int(bgcolor.red()*65535)
-        green = int(bgcolor.green()*65535)
-        blue = int(bgcolor.blue()*65535)
-        bcAttribute = pango.AttrBackground(red, green, blue, 0, len(text))
-        attr.insert(bcAttribute)
+
+        if bgcolor is None:
+            pass
+        else:
+            red = int(bgcolor.red()*65535)
+            green = int(bgcolor.green()*65535)
+            blue = int(bgcolor.blue()*65535)
+            bcAttribute = pango.AttrBackground(red, green, blue, 0, len(text))
+            attr.insert(bcAttribute)
+
         layout.set_attributes(attr)
 
         if align.halign == H_ALIGN_LEFT:    layout.set_alignment(pango.ALIGN_LEFT)
@@ -408,13 +437,13 @@ class SequenceDiagram(object):
         if x1 < x0:
             x0, x1 = x1, x0 # swap variables
 
-        # add a white background
-        self.cr.set_source_rgb(1, 1, 1)
+        # add background
+        setSourceColor(self.cr, Color(GlobalBgcolor))
         self.cr.rectangle(x0+STEP/2, y0-STEP/2, x1-x0-STEP, STEP)
         self.cr.fill()
 
         # foreground
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
         self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
         self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
 
@@ -471,7 +500,7 @@ class SequenceDiagram(object):
         self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_ONE_LINE_ABOVE))
 
         # the main line of the arrow
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
         self.cr.move_to(0, 0)
 
         self.cr.line_to(xHead, 0)
@@ -523,7 +552,7 @@ class SequenceDiagram(object):
 
     def messageToSelf(self, x0, y0, y1, text, color, bgcolor):
 
-        self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+        setSourceColor(self.cr, color)
 
         self.cr.move_to(x0, y0)
         self.cr.line_to(x0 + STEP, y0)
@@ -568,13 +597,13 @@ class SequenceDiagram(object):
 
                 if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_ACTOR ]:
                     color = node.lifelineOwner.options.getColor()
-                    self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+                    setSourceColor(self.cr, color)
 
                     self.lifeLine(x, y-STEP/2, y-STEP/2+rowHeight)
 
                 elif node.type == NT_TERMINATE:
                     color = node.lifelineOwner.options.getColor()
-                    self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+                    setSourceColor(self.cr, color)
                     self.lifeLine(x, y-STEP/2, y)
                     self.cross(x, y, color, node.options['label'])
 
@@ -589,7 +618,7 @@ class SequenceDiagram(object):
 
                 nodopts = node.options
                 color = nodopts.getColor()
-                self.cr.set_source_rgb(color.red(), color.green(), color.blue())
+                setSourceColor(self.cr, color)
         
                 if node.type == NT_ACTOR:
                     # the box
@@ -1170,17 +1199,16 @@ class MsqFile:
         self.preprocessSection('scenario')
                 
 
+class MscInit:
+    def __init__(self):
+        self.initialActors = []
+        self.font = None
+        self.border = None
 
+def pasrseMscInit(linesOfTokens):
 
-def mscParse(filename):
-    """Parse the input msq file and extract the tokens.
-    """
-    msq = MsqFile()
-    msq.preprocess(filename)
-    msq.preprocessIncludedSections()
-
-    initialActors = []
-    for line in msq.sections['init']:
+    mscInit = MscInit()
+    for line in linesOfTokens:
         if line[0] == 'actors':
             info("""
             DEPRECATED:
@@ -1192,23 +1220,45 @@ def mscParse(filename):
             
         elif line[0] == 'actor':
             actor = tokenParseActor(line[1:])
-            initialActors.append(actor)
+            mscInit.initialActors.append(actor)
 
         elif line[0] == 'font':
-            fontDescription = tokenParseFont(line[1:])
-            setGlobalFont(fontDescription)
+            mscInit.font = tokenParseFont(line[1:])
+
+        elif line[0] == 'bgcolor':
+            c = line[1]
+            if c == 'none': setGlobalBgcolor(None)
+            else: setGlobalBgcolor(c)
+
+        elif line[0] == 'border':
+            mscInit.border = line[1]
+            if mscInit.border == 'none': mscInit.border = None
+
         else:
             die('Invalid declaration in init: %s' % line)
 
-    if len(initialActors) == 0:
+    return mscInit
+
+def mscParse(filename):
+    """Parse the input msq file and extract the tokens.
+    """
+    msq = MsqFile()
+    msq.preprocess(filename)
+    msq.preprocessIncludedSections()
+
+    mscInit = pasrseMscInit(msq.sections['init'])
+
+    if len(mscInit.initialActors) == 0:
         die('No initial actor')
+
+    setGlobalFont(mscInit.font)
 
     # parse section 'scenario'
     lifeline = []
     for line in msq.sections['scenario']:
         lifeline.append(tokenParseScenarioLine(line))
 
-    return initialActors, lifeline
+    return mscInit, lifeline
 
 class GraphRow(list):
     def __init__(self, nColumns = 0):
@@ -1473,10 +1523,10 @@ def main():
     if args.verbose: setVerbosity(1)
 
     filename = args.file[0]
-    initialActors, data = mscParse(filename)
-    debug('initialActors=', initialActors)
+    mscInit, data = mscParse(filename)
+    debug('initialActors=', mscInit.initialActors)
     debug('data=', data)
-    matrix = computeGraph(initialActors, data)
+    matrix = computeGraph(mscInit.initialActors, data)
     debug("matrix=", matrix.rows)
 
     imgFormat = args.format
@@ -1487,7 +1537,7 @@ def main():
         imagefile = args.output
 
     width = int(args.width)
-    SequenceDiagram(imagefile, matrix, width, imgFormat)
+    SequenceDiagram(imagefile, matrix, width, imgFormat, mscInit)
     info('Generated image: %s' % (imagefile) )
 
 if __name__ == '__main__':

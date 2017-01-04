@@ -1,5 +1,8 @@
 [init]
 actor server
+font 20
+bgcolor red
+border none
 
 [scenario]
     server -* worker1 "hello\n1\n2\n3\n4"
