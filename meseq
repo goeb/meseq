@@ -139,19 +139,18 @@ class Options(dict):
         return self['label']
 
     def getColor(self):
-        return Color(self['color'])
+        return self['color']
 
     def getBgcolor(self):
-        if self['bgcolor'] in [ None, 'none' ]:
-            if GlobalBgcolor is None: return None
-            else: return Color(GlobalBgcolor)
-        return Color(self['bgcolor'])
+        if self['bgcolor'] in [ None, 'none' ]: return GlobalBgcolor
+        return self['bgcolor']
 
-def setSourceColor(cairoCtx, colorObject):
-    if colorObject is not None:
-        cairoCtx.set_source_rgb(colorObject.red(), colorObject.green(), colorObject.blue())
-    else:
+def setSourceColor(cairoCtx, colorName):
+    if colorName in [ None, 'none' ]:
         cairoCtx.set_source_rgba(0, 0, 0, 0)
+    else:
+        colorObject = Color(colorName)
+        cairoCtx.set_source_rgb(colorObject.red(), colorObject.green(), colorObject.blue())
 
 class SequenceDiagram(object):
 
@@ -191,7 +190,7 @@ class SequenceDiagram(object):
         if GlobalBgcolor:
             # draw background
             cr.rectangle(0, 0, width, height)
-            c = Color(GlobalBgcolor)
+            c = GlobalBgcolor
             setSourceColor(cr, c)
             cr.fill()
 
@@ -200,7 +199,7 @@ class SequenceDiagram(object):
         if mscInit.border:
             # draw black border
             cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
-            setSourceColor(cr, Color('black'))
+            setSourceColor(cr, 'black')
             cr.rectangle(0, 0, width, height)
             cr.stroke()
 
@@ -244,7 +243,7 @@ class SequenceDiagram(object):
 
 
     def init(self):
-        setSourceColor(self.cr, Color('black'))
+        setSourceColor(self.cr, 'black')
         self.cr.set_line_width(STEP/40)
 
     def cross(self, x, y, color, text = None):
@@ -255,7 +254,7 @@ class SequenceDiagram(object):
 
         if text is not None:
             # write the text
-            self.text(STEP/2, 0, text, color, Color(GlobalBgcolor), TextAlignment(halign=H_ALIGN_LEFT))
+            self.text(STEP/2, 0, text, color, GlobalBgcolor, TextAlignment(halign=H_ALIGN_LEFT))
 
         self.cr.rotate(math.pi/4)
 
@@ -389,9 +388,10 @@ class SequenceDiagram(object):
         if bgcolor is None:
             pass
         else:
-            red = int(bgcolor.red()*65535)
-            green = int(bgcolor.green()*65535)
-            blue = int(bgcolor.blue()*65535)
+            bgc = Color(bgcolor)
+            red = int(bgc.red()*65535)
+            green = int(bgc.green()*65535)
+            blue = int(bgc.blue()*65535)
             bcAttribute = pango.AttrBackground(red, green, blue, 0, len(text))
             attr.insert(bcAttribute)
 
@@ -438,7 +438,7 @@ class SequenceDiagram(object):
             x0, x1 = x1, x0 # swap variables
 
         # add background
-        setSourceColor(self.cr, Color(GlobalBgcolor))
+        setSourceColor(self.cr, GlobalBgcolor)
         self.cr.rectangle(x0+STEP/2, y0-STEP/2, x1-x0-STEP, STEP)
         self.cr.fill()
 
@@ -576,7 +576,7 @@ class SequenceDiagram(object):
 
     def debug(self, y, msg):
         self.dot(0, y)
-        self.text(0, y, msg, Color('black'), Color('white'))
+        self.text(0, y, msg, 'black', 'white')
 
     def draw(self):
 

@@ -1,7 +1,7 @@
 [init]
 actor server
 font 20
-bgcolor red
+bgcolor none
 border none
 
 [scenario]
