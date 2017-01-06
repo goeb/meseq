@@ -287,11 +287,9 @@ class SequenceDiagram(object):
         if wText >= width-STEP/2: width = wText + STEP/2 # take a margin because of the rounded part
         if hText >= height: height = STEP * int(1+hText/STEP)
 
-        radius = width / 2
-        sinus = height/2/radius
-
-        angle = math.asin(sinus)
-        dx = radius * math.cos(angle)
+        angle = math.atan(height/width)
+        radius = math.sqrt(height*height + width*width)/2
+        dx = width/2
 
         # adjust y
         y -= STEP/2
