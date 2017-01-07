@@ -3,7 +3,9 @@ actor sender color=blue
 actor ""
 actor "" 
 actor receiver
-font gentium 15
+font-family gentium
+font-size 15
+font-style italic
 
 [scenario]
 

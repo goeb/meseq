@@ -1,6 +1,6 @@
 [init]
 actor server
-font 20
+font-size 20
 bgcolor none
 border none
 

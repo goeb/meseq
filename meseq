@@ -29,7 +29,7 @@ ARROW_HEAD_RIGHT = 2
 ARROW_HEAD_HUGE  = 3
 
 Verbose = 0
-GlobalFont = 'Georgia 10'
+GlobalFont = None
 GlobalBgcolor = 'white'
 
 def setVerbosity(n):
@@ -53,9 +53,9 @@ def debug(*args):
 def error(*args):
     log('Error:', *args)
 
-def setGlobalFont(fontDesc):
+def setGlobalFont(fontObject):
     global GlobalFont
-    GlobalFont = fontDesc
+    GlobalFont = fontObject
 
 def setGlobalBgcolor(c):
     global GlobalBgcolor
@@ -360,7 +360,7 @@ class SequenceDiagram(object):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
-        fontname = GlobalFont
+        fontname = GlobalFont.family + ' ' + GlobalFont.style + ' ' + GlobalFont.size
         font = pango.FontDescription(fontname)
         layout.set_font_description(font)
         layout.set_text(text)
@@ -895,16 +895,6 @@ def lexerParse(line):
     
     return tokens
 
-def tokenParseFont(tokens):
-    """The tokens a concatenated.
-    The result will be passed to pango.FontDescription.
-    Examples of expected result:
-        sans bold 12
-        serif,monospace bold italic condensed 16
-        normal 10
-    """
-    return ' '.join(tokens)
-
 def tokenParseActor(tokens):
     """Expected tokens:
     actorid [options ...]
@@ -1196,11 +1186,16 @@ class MsqFile:
         self.preprocessSection('init')
         self.preprocessSection('scenario')
                 
+class Font:
+    def __init__(self):
+        self.size = '10'
+        self.family = 'Georgia'
+        self.style = ''
 
 class MscInit:
     def __init__(self):
         self.initialActors = []
-        self.font = None
+        self.font = Font()
         self.border = None
 
 def pasrseMscInit(linesOfTokens):
@@ -1220,8 +1215,14 @@ def pasrseMscInit(linesOfTokens):
             actor = tokenParseActor(line[1:])
             mscInit.initialActors.append(actor)
 
-        elif line[0] == 'font':
-            mscInit.font = tokenParseFont(line[1:])
+        elif line[0] == 'font-size':
+            mscInit.font.size = line[1]
+
+        elif line[0] == 'font-style':
+            mscInit.font.style = line[1]
+
+        elif line[0] == 'font-family':
+            mscInit.font.family = line[1]
 
         elif line[0] == 'bgcolor':
             c = line[1]
