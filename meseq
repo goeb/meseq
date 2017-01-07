@@ -360,7 +360,8 @@ class SequenceDiagram(object):
         pangocairoCtx = pangocairo.CairoContext(self.cr)
         pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
         layout = pangocairoCtx.create_layout()
-        fontname = GlobalFont.family + ' ' + GlobalFont.style + ' ' + GlobalFont.size
+        fontname = GlobalFont.family + ' ' + GlobalFont.style
+        fontname += ' %d' % GlobalFont.getSize(STEP/33) # 33 is empirical
         font = pango.FontDescription(fontname)
         layout.set_font_description(font)
         layout.set_text(text)
@@ -1188,15 +1189,29 @@ class MsqFile:
                 
 class Font:
     def __init__(self):
-        self.size = '10'
+        self.sizeRatio = 100 # percent
         self.family = 'Georgia'
         self.style = ''
+
+    def getSize(self, scale):
+        return self.sizeRatio / 100.0 * 10 * scale
 
 class MscInit:
     def __init__(self):
         self.initialActors = []
         self.font = Font()
         self.border = None
+
+def parseMscSizeRatio(tokens):
+    try:
+        s = tokens[0]
+        if s[-1] != '%':
+            error('Invalid font-size specification: must be a percentage')
+            return 100
+        return int(s[:-1])
+    except:
+        error('Invalid font-size specification: %s (must be a percentage)' % tokens)
+        return 100
 
 def pasrseMscInit(linesOfTokens):
 
@@ -1216,7 +1231,7 @@ def pasrseMscInit(linesOfTokens):
             mscInit.initialActors.append(actor)
 
         elif line[0] == 'font-size':
-            mscInit.font.size = line[1]
+            mscInit.font.sizeRatio = parseMscSizeRatio(line[1:])
 
         elif line[0] == 'font-style':
             mscInit.font.style = line[1]
