@@ -7,6 +7,6 @@ actor b Bob
 [scenario]
 :
 :
-a <-> b Hanshake
+a <-> b Handshake
 :
 

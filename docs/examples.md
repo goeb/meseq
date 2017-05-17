@@ -70,7 +70,7 @@
 	[scenario]
 	:
 	:
-	a <-> b Hanshake
+	a <-> b Handshake
 	:
 	
 ![](examples/05_double_arrow.png)

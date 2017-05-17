@@ -13,6 +13,8 @@ Meseq has the following features:
 - utf-8 encoded messages
 - resolve environment variables
 
+More documentation here: ![https://goeb.github.io/meseq/](https://goeb.github.io/meseq/)
+
 # Examples
 
 ![Example 1](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_web.png)
@@ -23,8 +25,12 @@ Meseq has the following features:
 
 Features planned:
 
-* improve layout of messages (text, arrows, ...)
-* add other styles of boxes, side notes, groups
+* improve layout: spaces between items (double arrow, etc.)
+* add graphical elements:
+	* styles of boxes (rectagular)
+	* horizontal lines
+	* side notes
+	* grouping (in containing boxes)
 
 ## License
 
