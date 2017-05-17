@@ -13,7 +13,7 @@ Meseq has the following features:
 - utf-8 encoded messages
 - resolve environment variables
 
-More documentation here: ![https://goeb.github.io/meseq/](https://goeb.github.io/meseq/)
+More documentation here: <https://goeb.github.io/meseq/>
 
 # Examples
 
