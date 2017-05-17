@@ -1,0 +1,11 @@
+[init]
+actor a Alice
+actor ""
+actor ""
+actor b Bob
+
+[scenario]
+a -> b msg-x goto=L1
+a <- b msg-y goto=L1
+:L1
+:

@@ -1,0 +1,8 @@
+[init]
+actor a Alice
+
+[scenario]
+a -* b label=create actor_label=Bob
+a -> b stop
+b + end
+

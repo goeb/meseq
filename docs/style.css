@@ -83,6 +83,7 @@ li.active {
 }
 img {
     border: 0;
+	width: 60%;
 }
 div.header img {
     vertical-align: middle;

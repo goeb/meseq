@@ -1,0 +1,17 @@
+[init]
+actor a Alice
+
+[scenario]
+-include step_init
+-include step_do_transaction
+-include step_do_transaction
+-include step_do_transaction
+
+-include 20_include_1.msqi
+
+[step_init]
+a -* b create actor_label=Bob
+
+[step_do_transaction]
+a -> b "do step"
+a <- b "ok"

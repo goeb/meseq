@@ -1,0 +1,10 @@
+[init]
+actor a Alice\n(9ca230838602)
+actor ""
+actor b Bob
+
+[scenario]
+a -> b "SYN\nSeq=0, Len=0\nMSS=1460, Win=29200"
+a <- b SYN,ACK
+a -> b ACK
+

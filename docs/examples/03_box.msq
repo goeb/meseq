@@ -1,0 +1,14 @@
+[init]
+actor a Alice
+actor b Bob
+
+[scenario]
+a -> b SYN
+:
+:
+b -box computing...
+:
+:
+a <- b SYN,ACK
+a -> b ACK
+

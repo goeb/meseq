@@ -1,0 +1,12 @@
+
+# This is a comment
+
+[init]
+actor a Alice
+actor b Bob
+
+[scenario]
+a -> b SYN
+a <- b SYN,ACK
+a -> b ACK
+

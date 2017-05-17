@@ -1,0 +1,15 @@
+[init]
+actor a Alice color=blue
+actor b Bob
+font-family gentium
+font-size 15
+font-style italic
+
+[scenario]
+a -> b SYN color=666 # grey
+a <- b SYN,ACK font-size=2
+a -> b ACK
+b -* c actor_bgcolor=orange actor_label=Charlie
+b -box waiting... bgcolor=yellow
+:
+

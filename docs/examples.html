@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Meseq Examples</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    </head>
+
+    <body>
+        <div class="header">
+            <span class="header_text">Meseq -- a message sequence chart generator</span>
+        </div>
+		<br>
+        <div class="page">
+<aside class='menu'>
+<ul>
+<li><a href='index.html'>Meseq Overview</a></li>
+<li class='active'>Meseq Examples
+<ul class=menu_level2>
+<li><a href='#basic.msq'>01_basic.msq</a></li>
+<li><a href='#create_actor.msq'>02_create_actor.msq</a></li>
+<li><a href='#box.msq'>03_box.msq</a></li>
+<li><a href='#multilines.msq'>04_multilines.msq</a></li>
+<li><a href='#double_arrow.msq'>05_double_arrow.msq</a></li>
+<li><a href='#message_lost.msq'>06_message_lost.msq</a></li>
+<li><a href='#crossing.msq'>07_crossing.msq</a></li>
+<li><a href='#layout.msq'>15_layout.msq</a></li>
+<li><a href='#decoration.msq'>16_decoration.msq</a></li>
+<li><a href='#include.msq'>20_include.msq</a></li>
+</ul>
+</li>
+</ul>
+</aside>
+<div class='contents'>
+<h1 id="meseq-examples">Meseq Examples</h1>
+<h2 id="basic.msq">01_basic.msq</h2>
+<pre><code># This is a comment
+
+[init]
+actor a Alice
+actor b Bob
+
+[scenario]
+a -&gt; b SYN
+a &lt;- b SYN,ACK
+a -&gt; b ACK</code></pre>
+<div class="figure">
+<img src="examples/01_basic.png" />
+
+</div>
+<h2 id="create_actor.msq">02_create_actor.msq</h2>
+<pre><code>[init]
+actor a Alice
+
+[scenario]
+a -* b label=create actor_label=Bob
+a -&gt; b stop
+b + end</code></pre>
+<div class="figure">
+<img src="examples/02_create_actor.png" />
+
+</div>
+<h2 id="box.msq">03_box.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor b Bob
+
+[scenario]
+a -&gt; b SYN
+:
+:
+b -box computing...
+:
+:
+a &lt;- b SYN,ACK
+a -&gt; b ACK</code></pre>
+<div class="figure">
+<img src="examples/03_box.png" />
+
+</div>
+<h2 id="multilines.msq">04_multilines.msq</h2>
+<pre><code>[init]
+actor a Alice\n(9ca230838602)
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+a -&gt; b &quot;SYN\nSeq=0, Len=0\nMSS=1460, Win=29200&quot;
+a &lt;- b SYN,ACK
+a -&gt; b ACK</code></pre>
+<div class="figure">
+<img src="examples/04_multilines.png" />
+
+</div>
+<h2 id="double_arrow.msq">05_double_arrow.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+:
+:
+a &lt;-&gt; b Hanshake
+:</code></pre>
+<div class="figure">
+<img src="examples/05_double_arrow.png" />
+
+</div>
+<h2 id="message_lost.msq">06_message_lost.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+a -x b SYN
+a -&gt; b SYN</code></pre>
+<div class="figure">
+<img src="examples/06_message_lost.png" />
+
+</div>
+<h2 id="crossing.msq">07_crossing.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+a -&gt; b msg-x goto=L1
+a &lt;- b msg-y goto=L1
+:L1
+:</code></pre>
+<div class="figure">
+<img src="examples/07_crossing.png" />
+
+</div>
+<h2 id="layout.msq">15_layout.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+a -&gt; b SYN
+a &lt;- b SYN,ACK
+:
+:
+:
+a -&gt; b ACK</code></pre>
+<div class="figure">
+<img src="examples/15_layout.png" />
+
+</div>
+<h2 id="decoration.msq">16_decoration.msq</h2>
+<pre><code>[init]
+actor a Alice color=blue
+actor b Bob
+font-family gentium
+font-size 15
+font-style italic
+
+[scenario]
+a -&gt; b SYN color=666 # grey
+a &lt;- b SYN,ACK font-size=2
+a -&gt; b ACK
+b -* c actor_bgcolor=orange actor_label=Charlie
+b -box waiting... bgcolor=yellow
+:</code></pre>
+<div class="figure">
+<img src="examples/16_decoration.png" />
+
+</div>
+<h2 id="include.msq">20_include.msq</h2>
+<pre><code>[init]
+actor a Alice
+
+[scenario]
+-include step_init
+-include step_do_transaction
+-include step_do_transaction
+-include step_do_transaction
+
+-include 20_include_1.msqi
+
+[step_init]
+a -* b create actor_label=Bob
+
+[step_do_transaction]
+a -&gt; b &quot;do step&quot;
+a &lt;- b &quot;ok&quot;</code></pre>
+<div class="figure">
+<img src="examples/20_include.png" />
+
+</div>
+</div>
+        </div> <!-- div class page -->
+        <div class="footer">
+            Page updated on 17 May 2017
+        </div>
+    </body>
+</html>

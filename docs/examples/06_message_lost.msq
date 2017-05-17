@@ -1,0 +1,10 @@
+[init]
+actor a Alice
+actor ""
+actor ""
+actor b Bob
+
+[scenario]
+a -x b SYN
+a -> b SYN
+
