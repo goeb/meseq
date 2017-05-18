@@ -1,9 +1,9 @@
 [init]
 actor a Alice color=blue
 actor b Bob
-font-family gentium
-font-size 15
-font-style italic
+font-family helvetica
+font-size 130%
+font-style bold
 
 [scenario]
 a -> b SYN color=666 # grey
