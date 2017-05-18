@@ -31,12 +31,14 @@
 
 	[init]
 	actor a Alice
+	actor ""
 	actor b Bob
 	
 	[scenario]
 	b -box ready
 	a -> b SYN
 	b -box "computing...\n(step 1)"
+	a -box waiting...
 	b -box "computing...\n(step 2)"
 	a <- b SYN,ACK
 	a -> b ACK

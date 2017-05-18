@@ -65,12 +65,14 @@ b + end</code></pre>
 <h2 id="box.msq">03_box.msq</h2>
 <pre><code>[init]
 actor a Alice
+actor &quot;&quot;
 actor b Bob
 
 [scenario]
 b -box ready
 a -&gt; b SYN
 b -box &quot;computing...\n(step 1)&quot;
+a -box waiting...
 b -box &quot;computing...\n(step 2)&quot;
 a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
