@@ -1,6 +1,6 @@
 [init]
 actor server
-font-size 20
+font-size 100%
 border none
 
 [scenario]

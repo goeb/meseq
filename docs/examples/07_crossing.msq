@@ -8,4 +8,3 @@ actor b Bob
 a -> b msg-x goto=L1
 a <- b msg-y goto=L1
 :L1
-:

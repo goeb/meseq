@@ -1,0 +1,12 @@
+[init]
+actor a Alice
+actor ""
+actor ""
+actor b Bob
+
+[scenario]
+a -> b hello
+b -box ignore
+a -> a timeout\n6s
+a -> b "I said hello!"
+

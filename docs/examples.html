@@ -24,8 +24,10 @@
 <li><a href='#double_arrow.msq'>05_double_arrow.msq</a></li>
 <li><a href='#message_lost.msq'>06_message_lost.msq</a></li>
 <li><a href='#crossing.msq'>07_crossing.msq</a></li>
+<li><a href='#timeout.msq'>08_timeout.msq</a></li>
 <li><a href='#layout.msq'>15_layout.msq</a></li>
 <li><a href='#decoration.msq'>16_decoration.msq</a></li>
+<li><a href='#utf8.msq'>17_utf8.msq</a></li>
 <li><a href='#include.msq'>20_include.msq</a></li>
 </ul>
 </li>
@@ -66,12 +68,10 @@ actor a Alice
 actor b Bob
 
 [scenario]
+b -box ready
 a -&gt; b SYN
-:
-:
-b -box computing...
-:
-:
+b -box &quot;computing...\n(step 1)&quot;
+b -box &quot;computing...\n(step 2)&quot;
 a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
 <div class="figure">
@@ -95,14 +95,16 @@ a -&gt; b ACK</code></pre>
 <h2 id="double_arrow.msq">05_double_arrow.msq</h2>
 <pre><code>[init]
 actor a Alice
-actor &quot;&quot;
-actor &quot;&quot;
 actor b Bob
+actor c Charlie
+actor d David
+actor e Emily
 
 [scenario]
 :
-:
-a &lt;-&gt; b Handshake
+c &lt;-&gt; b Exchange\nkeys
+d &lt;-&gt; e Exchange\nkeys
+a &lt;-&gt; d Exchange\nkeys
 :</code></pre>
 <div class="figure">
 <img src="examples/05_double_arrow.png" />
@@ -132,10 +134,25 @@ actor b Bob
 [scenario]
 a -&gt; b msg-x goto=L1
 a &lt;- b msg-y goto=L1
-:L1
-:</code></pre>
+:L1</code></pre>
 <div class="figure">
 <img src="examples/07_crossing.png" />
+
+</div>
+<h2 id="timeout.msq">08_timeout.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+a -&gt; b hello
+b -box ignore
+a -&gt; a timeout\n6s
+a -&gt; b &quot;I said hello!&quot;</code></pre>
+<div class="figure">
+<img src="examples/08_timeout.png" />
 
 </div>
 <h2 id="layout.msq">15_layout.msq</h2>
@@ -160,9 +177,9 @@ a -&gt; b ACK</code></pre>
 <pre><code>[init]
 actor a Alice color=blue
 actor b Bob
-font-family gentium
-font-size 15
-font-style italic
+font-family helvetica
+font-size 130%
+font-style bold
 
 [scenario]
 a -&gt; b SYN color=666 # grey
@@ -173,6 +190,18 @@ b -box waiting... bgcolor=yellow
 :</code></pre>
 <div class="figure">
 <img src="examples/16_decoration.png" />
+
+</div>
+<h2 id="utf8.msq">17_utf8.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor b B&#233;r&#233;nice
+
+[scenario]
+a -&gt; b &quot;o&#249; vas-tu ?&quot;
+a &lt;- b &quot;au th&#233;&#226;tre&quot;</code></pre>
+<div class="figure">
+<img src="examples/17_utf8.png" />
 
 </div>
 <h2 id="include.msq">20_include.msq</h2>
@@ -200,7 +229,7 @@ a &lt;- b &quot;ok&quot;</code></pre>
 </div>
         </div> <!-- div class page -->
         <div class="footer">
-            Page updated on 17 May 2017
+            Page updated on 18 May 2017
         </div>
     </body>
 </html>

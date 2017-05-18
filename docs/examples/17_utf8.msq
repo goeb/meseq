@@ -1,0 +1,7 @@
+[init]
+actor a Alice
+actor b Bérénice
+
+[scenario]
+a -> b "où vas-tu ?"
+a <- b "au théâtre"

@@ -34,12 +34,10 @@
 	actor b Bob
 	
 	[scenario]
+	b -box ready
 	a -> b SYN
-	:
-	:
-	b -box computing...
-	:
-	:
+	b -box "computing...\n(step 1)"
+	b -box "computing...\n(step 2)"
 	a <- b SYN,ACK
 	a -> b ACK
 	
@@ -63,14 +61,16 @@
 
 	[init]
 	actor a Alice
-	actor ""
-	actor ""
 	actor b Bob
+	actor c Charlie
+	actor d David
+	actor e Emily
 	
 	[scenario]
 	:
-	:
-	a <-> b Handshake
+	c <-> b Exchange\nkeys
+	d <-> e Exchange\nkeys
+	a <-> d Exchange\nkeys
 	:
 	
 ![](examples/05_double_arrow.png)
@@ -101,8 +101,23 @@
 	a -> b msg-x goto=L1
 	a <- b msg-y goto=L1
 	:L1
-	:
 ![](examples/07_crossing.png)
+
+## 08_timeout.msq
+
+	[init]
+	actor a Alice
+	actor ""
+	actor ""
+	actor b Bob
+	
+	[scenario]
+	a -> b hello
+	b -box ignore
+	a -> a timeout\n6s
+	a -> b "I said hello!"
+	
+![](examples/08_timeout.png)
 
 ## 15_layout.msq
 
@@ -127,9 +142,9 @@
 	[init]
 	actor a Alice color=blue
 	actor b Bob
-	font-family gentium
-	font-size 15
-	font-style italic
+	font-family helvetica
+	font-size 130%
+	font-style bold
 	
 	[scenario]
 	a -> b SYN color=666 # grey
@@ -140,6 +155,17 @@
 	:
 	
 ![](examples/16_decoration.png)
+
+## 17_utf8.msq
+
+	[init]
+	actor a Alice
+	actor b Bérénice
+	
+	[scenario]
+	a -> b "où vas-tu ?"
+	a <- b "au théâtre"
+![](examples/17_utf8.png)
 
 ## 20_include.msq
 

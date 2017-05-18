@@ -1,12 +1,14 @@
 [init]
 actor a Alice
-actor ""
-actor ""
 actor b Bob
+actor c Charlie
+actor d David
+actor e Emily
 
 [scenario]
 :
-:
-a <-> b Handshake
+c <-> b Exchange\nkeys
+d <-> e Exchange\nkeys
+a <-> d Exchange\nkeys
 :
 

@@ -4,7 +4,7 @@ actor somebody
 actor proxy
 actor ""
 actor w3server
-font-size 100
+font-size 100%
 
 [scenario]
     w3client   ->   proxy   CONNECT

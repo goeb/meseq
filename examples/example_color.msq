@@ -4,7 +4,7 @@ actor ""
 actor "" 
 actor receiver
 font-family gentium
-font-size 15
+font-size 90%
 font-style italic
 
 [scenario]
