@@ -214,9 +214,9 @@ class SequenceDiagram(object):
         rowShift = 0
         for rowid in range(0, len(self.matrix.rows)):
             # compute the height of the row (after the size of the text)
-            rowHeight = 1 # default
-            debug("rowHeight: ", rowHeight, "STEP: ", STEP)
             row = self.matrix.rows[rowid]
+            rowHeight = row.height # original height
+            debug("rowHeight: ", rowHeight, "STEP: ", STEP)
             for i in range(len(row)):
                 node = row[i]
                 if node is None: continue
@@ -690,15 +690,15 @@ class Node:
         self.actorDest = None
         self.options = Options()
         self.id = None # used for 'goto'
+        self.isTall = False # indicate if the picture is vertically tall (box, etc.)
 
         if self.type == NT_ACTOR: self.lifelineOwner = self
         else: self.lifelineOwner = None
 
+        if self.type in [ NT_ACTOR, NT_BOX, NT_BIDIRECTIONAL ]: self.isTall = True
+
     def __repr__(self):
         return '<%s:%s->%s(%s)>' % (self.type, self.actorSrc, self.actorDest, self.options['label'])
-
-class Matrix:
-    pass
 
 def readInput(file):
     pass
@@ -1006,10 +1006,14 @@ def tokenParseScenarioLine(line):
 
     if line[0] == ':':
         node = Node(NT_COLON)
-        if len(line) == 2:
+        if len(line) == 1:
+            pass # anonymous label, used for isnerting a blank line
+        elif len(line) == 2:
+            # named label
             node.id = line[1]
-        elif len(line) > 2:
-            die('Invalid goto-label, len=%d' % len(line))
+        else:
+            die('Invalid goto-label, too many tokens (%d)' % len(line))
+
         return node
 
     elif len(line) >= 2 and line[1] == '+':
@@ -1275,8 +1279,10 @@ def mscParse(filename):
     return mscInit, lifeline
 
 class GraphRow(list):
-    def __init__(self, nColumns = 0):
-        self.height = 2
+    def __init__(self, nColumns, halfsize = False):
+        if halfsize: self.height = 0.5
+        else: self.height = 1
+
         for c in range(0, nColumns):
             self.append(None)
 
@@ -1319,9 +1325,9 @@ class SequenceGraph:
                     self.activeActors[i] = None
                     return
 
-    def getNewRow(self):
+    def getNewRow(self, halfsize):
         nColumns = len(self.activeActors)
-        return GraphRow(nColumns)
+        return GraphRow(nColumns, halfsize)
 
     def getIndex(self, actorid):
         for i in range(len(self.activeActors)):
@@ -1332,7 +1338,7 @@ class SequenceGraph:
 
     def init(self, initialActors):
         self.activeActors = initialActors
-        row = GraphRow()
+        row = GraphRow(0, False)
         for a in self.activeActors:
             row.append(a)
         self.rows = [ row ]
@@ -1350,14 +1356,23 @@ class SequenceGraph:
                     row[i] = Node(NT_LIFELINE)
                     row[i].lifelineOwner = self.activeActors[i]
 
-    def addNewRow(self):
+    def insertBlankRow(self):
+        self.addNewRow(True)
+        self.addNewRow()
+
+    def addNewRow(self, halfsize = False):
         self.updateLifeline()
-        self.rows.append(self.getNewRow())
+        self.rows.append(self.getNewRow(halfsize))
         currentRow = self.getCurrentRow()
         return currentRow
 
-    def place2(self, node1, node2):
-        """Place 2 nodes on the same row.
+    def place2(self, node1, node2, tall = False):
+        """Place 2 connected nodes on the same row.
+
+        Args:
+            tall: True if node1 or node2 is vertically tall,
+                  that implies that it should not touch any tall
+                  node of the row above.
         """
         currentRow = self.getCurrentRow()
         index1 = self.getIndex(node1.actorSrc)
@@ -1369,17 +1384,35 @@ class SequenceGraph:
         if index2 is None:
             die('place2: Cannot place on unknown actor: %s' % node2.actorSrc)
 
-        if index1 == len(currentRow):
-            # case of a newly created actor
-            currentRow.append(None)
+        #if index1 == len(currentRow) or index2 == len(currentRow):
+        #    # case of a newly created actor; the row is therefore busy
+        #    currentRow.append(None)
 
-        if index2 == len(currentRow):
-            # case of a newly created actor
-            currentRow.append(None)
+        needNewRow = False
+        needSeparationRow = False
 
-        if currentRow[index1] is not None or currentRow[index2] is not None:
-            # this row is busy, take the next one
-            currentRow = self.addNewRow()
+        first = min(index1, index2)
+        second = max(index1, index2)
+        for i in range(first, second+1):
+            if currentRow[i] is not None:
+                # this row is busy, need a new row
+                needNewRow = True
+                break
+
+        if tall and len(self.rows) >= 1:
+            previousRow = self.rows[-1]
+            for i in range(first, second+1):
+                if len(previousRow) > i:
+                    nodeAbove = previousRow[i]
+                    if nodeAbove is not None and nodeAbove.isTall:
+                        needSeparationRow = True
+                        break
+
+        if needSeparationRow:
+            currentRow = self.addNewRow(True)
+
+        if needNewRow:
+            currentRow = self.addNewRow(False)
 
         currentRow[index1] = node1
         currentRow[index2] = node2
@@ -1388,7 +1421,7 @@ class SequenceGraph:
         node1.y = node2.y = len(self.rows) - 1
 
 
-    def place(self, node, preventTouch = False):
+    def place(self, node, tall = False):
         currentRow = self.getCurrentRow()
         index = self.getIndex(node.actorSrc)
         if index is None:
@@ -1398,17 +1431,25 @@ class SequenceGraph:
             # case of a newly create actor
             currentRow.append(None)
 
+        needNewRow = False
+        needSeparationRow = False
+
         if currentRow[index] is not None:
             # this row is busy, take the next one
-            currentRow = self.addNewRow()
+            needNewRow = True
 
-        if preventTouch:
-            # check if the row just above has a NT_BOX or NT_ACTOR
-            if len(self.rows) > 1 and len(self.rows[-2]) > index:
-                nodeAbove =  self.rows[-2][index]
-                if nodeAbove is not None and nodeAbove.type in [ NT_BOX, NT_ACTOR ]:
-                    # add a row
-                    currentRow = self.addNewRow()
+        if tall:
+            # check if the row just above is also tall (box, etc.)
+            if len(self.rows) >= 1 and len(self.rows[-1]) > index:
+                nodeAbove = self.rows[-1][index]
+                if nodeAbove is not None and nodeAbove.isTall:
+                    needSeparationRow = True
+
+        if needSeparationRow:
+            currentRow = self.addNewRow(True)
+
+        if needNewRow:
+            currentRow = self.addNewRow(False)
 
         currentRow[index] = node
         node.x = index
@@ -1472,7 +1513,7 @@ def computeGraph(initialActors, data):
             otherNode.actorSrc = nod.actorDest
             otherNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
             nod.arrival = otherNode
-            graph.place2(nod, otherNode)
+            graph.place2(nod, otherNode, tall=True)
 
         elif nod.type == NT_CREATE:
             # TODO check if the arrow may conflict with other message on the row
@@ -1500,17 +1541,18 @@ def computeGraph(initialActors, data):
         elif nod.type == NT_BOX:
             # insert a row if previous node is a NT_BOX or NT_ACTOR
             # so that they do not touch each other
-            graph.place(nod, preventTouch=True)
+            graph.place(nod, tall=True)
 
         elif nod.type == NT_TERMINATE:
             graph.place(nod)
             graph.removeActor(nod.actorSrc)
 
         elif nod.type == NT_COLON:
-            graph.setGotoLabel(nod.id)
             if nod.id is None:
                 # insert a row
-                graph.addNewRow()
+                graph.insertBlankRow()
+            else:
+                graph.setGotoLabel(nod.id)
 
         # Look if some pending messages can be received
         graph.placePending()
