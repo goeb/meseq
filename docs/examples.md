@@ -1,4 +1,4 @@
-# Meseq Examples
+# Examples
 ## 01_basic.msq
 
 	

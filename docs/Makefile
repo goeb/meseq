@@ -2,6 +2,7 @@
 
 SRCS += index.md
 SRCS += examples.md
+SRCS += command_line.md
 
 BUILD_DIR=.
 
@@ -28,6 +29,12 @@ clean:
 	rm -f $(HTMLS)
 	rm -rf titles.d
 
+# ----------- command line -----------
+#
+command_line.md: $(MESEQ)
+	@echo "# Command Line" > $@
+	@echo >> $@
+	$(MESEQ) --help 2>&1 | sed -e "s/^/\t/" >> $@
 
 # ----------- examples ----------------
 #
@@ -40,7 +47,7 @@ MESEQ = ../meseq
 	$(MESEQ) -o $@ $<
 
 examples.md: $(EXAMPLES_MSQ) $(EXAMPLES_PNG) Makefile
-	@echo "# Meseq Examples" > $@
+	@echo "# Examples" > $@
 	for f in $(EXAMPLES_STEM); do \
 		echo "## $$(basename $$f.msq)" ; \
 		echo ; \

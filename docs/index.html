@@ -19,16 +19,37 @@
 <li><a href='#'></a></li>
 </ul>
 </li>
-<li><a href='examples.html'>Meseq Examples</a></li>
+<li><a href='examples.html'>Examples</a></li>
+<li><a href='command_line.html'>Command Line</a></li>
 </ul>
 </aside>
 <div class='contents'>
 <h1 id="meseq-overview">Meseq Overview</h1>
 <p>Meseq is a free and open-source generator of message sequence charts.</p>
+<p>Inputs:</p>
+<ul>
+<li>a text <code>msq</code> file</li>
+</ul>
+<p>Example:</p>
+<pre><code>[init]
+actor a Alice
+actor b Bob
+
+[scenario]
+a -&gt; b SYN
+a &lt;- b SYN,ACK
+a -&gt; b ACK</code></pre>
+<p>Outputs:</p>
+<ul>
+<li>an image</li>
+</ul>
+<div class="figure">
+<img src="examples/01_basic.png" />
+</div>
 </div>
         </div> <!-- div class page -->
         <div class="footer">
-            Page updated on 17 May 2017
+            Page updated on 19 May 2017
         </div>
     </body>
 </html>
