@@ -3,7 +3,7 @@
 
 Meseq is a free and open-source generator of message sequence charts.
 
-Inputs:
+## Inputs
 
 - a text `msq` file
 
@@ -20,7 +20,7 @@ Example:
 
 
 
-Outputs:
+## Outputs
 
 - an image
 
