@@ -594,17 +594,17 @@ class SequenceDiagram(object):
 
                 if node is None: continue
 
-                if node.type in [ NT_LIFELINE, NT_MSG_RECV, NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_ACTOR ]:
-                    color = node.lifelineOwner.options.getColor()
-                    setSourceColor(self.cr, color)
-
+                color = node.lifelineOwner.options.getColor()
+                setSourceColor(self.cr, color)
+                if node.type == NT_TERMINATE:
+                    # short life line
+                    self.lifeLine(x, y-STEP/2, y)
+                    # draw an 'x'
+                    self.cross(x, y, color, node.options['label'])
+                else:
+                    # regular life line
                     self.lifeLine(x, y-STEP/2, y-STEP/2+rowHeight)
 
-                elif node.type == NT_TERMINATE:
-                    color = node.lifelineOwner.options.getColor()
-                    setSourceColor(self.cr, color)
-                    self.lifeLine(x, y-STEP/2, y)
-                    self.cross(x, y, color, node.options['label'])
 
             # now draw the other widgets
             for i in range(len(row)):
