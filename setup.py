@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='meseq',
-      version='1.0',
+      version='1.1',
       description='Editor of Message Sequence Diagrams',
       author='Fred Hoerni',
       author_email='fhoerni@free.fr',

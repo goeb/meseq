@@ -8,6 +8,7 @@ import pango
 import pangocairo
 import argparse
 
+VERSION = '1.1'
 STEP = None
 
 # Test alignment
@@ -1635,12 +1636,14 @@ def main():
     """Process a msq file and generate an image of the message sequence diagram.
     """
 
-    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser = argparse.ArgumentParser(description=main.__doc__, prog='meseq')
     parser.add_argument('file', nargs=1, help='msq file')
+    parser.add_argument('-V', '--version', help='print version and exit', action='version', version='%(prog)s ' + VERSION)
     parser.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
     parser.add_argument('-f', '--format', choices=['png', 'svg'], help='format of the generated image (default: png)', default='png')
     parser.add_argument('-o', '--output', help='name of the generated image')
     parser.add_argument('-w', '--width', help='width in pixel of the generated image (default: 600)', default='600')
+
     args = parser.parse_args()
 
     if args.verbose: setVerbosity(1)
