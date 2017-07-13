@@ -227,7 +227,7 @@ class SequenceDiagram(object):
 
                 # compute height
                 nodopts = node.options
-                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR, NT_BOX ]:
+                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_MSG_RETURN, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR, NT_BOX ]:
                     wText, hText = self.getTextSize(nodopts['label'])
                     debug("label: ", nodopts['label'], "hText=", hText, "hText/STEP: ", hText/STEP)
 
@@ -458,6 +458,65 @@ class SequenceDiagram(object):
         x = x0 +(x1-x0) / 2
         self.text(x, y0, text, color, bgcolor)
 
+    def returnArrow(self, x0, y0, x1, text, color, bgcolor):
+        if x1 == x0:
+            error("error, arrow")
+            return
+
+        elif x1 < x0:
+            sign = -1 # indicate that the arrow is from right to left
+
+        else:
+            sign = 1
+
+        size = abs(x1-x0)
+
+        # Do transforming, in order to work easily
+        self.cr.save()
+        self.cr.translate(x0, y0)
+
+        xHead = size * sign
+
+        # a small dot for the starting point of the arrow
+        self.dot(0, 0)
+
+        # text
+        # place text in the center of the arrow
+        x = xHead / 2
+        y = 0
+        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_ONE_LINE_ABOVE))
+
+        # the main line of the arrow
+        setSourceColor(self.cr, color)
+        self.cr.move_to(0, 0)
+        self.cr.line_to(xHead, 0)
+        self.cr.stroke()
+
+        # head of the arrow
+        if sign > 0:
+            flag = ARROW_HEAD_RIGHT
+            flagReturn = ARROW_HEAD_LEFT
+        else:
+            flag = ARROW_HEAD_LEFT
+            flagReturn = ARROW_HEAD_RIGHT
+
+        self.arrowHead(xHead, y, [flag])
+
+        yDelta = STEP/2
+
+        # a small curve to indicate the return
+        self.cr.arc(xHead, y+yDelta/2, yDelta/2, -sign*math.pi/2, sign*math.pi/2)
+
+        # the return part
+        y += yDelta
+        self.cr.move_to(0, y)
+        self.cr.line_to(xHead, y)
+        self.cr.stroke()
+        self.arrowHead(0, y, [flagReturn])
+       
+        # Revert the transforming
+        self.cr.restore()
+
 
     def arrow(self, x0, y0, x1, y1, text, color, bgcolor, flags = ARROW_NORMAL):
 
@@ -654,6 +713,10 @@ class SequenceDiagram(object):
                 elif node.type == NT_BOX:
                     self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
 
+                elif node.type == NT_MSG_RETURN:
+                    x1 = self.getx(node.arrival.x)
+                    self.returnArrow(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+
                 elif node.type == NT_BIDIRECTIONAL:
                     x1 = self.getx(node.arrival.x)
                     self.bidirectional(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
@@ -675,6 +738,7 @@ NT_ACTOR     = 'actor'
 NT_MSG_SEND  = 'send-message'
 NT_MSG_RECV  = 'recv-message'
 NT_MSG_LOST  = 'lost-message'
+NT_MSG_RETURN = 'return-message'
 NT_CREATE    = 'create'
 NT_BOX       = 'box'
 NT_BIDIRECTIONAL = "bidirectional"
@@ -1033,14 +1097,17 @@ def tokenParseScenarioLine(line):
     if line[1] == '->': node = Node(NT_MSG_SEND)
     elif line[1] == '<-':
         node = Node(NT_MSG_SEND)
-        # reverse src and dest
-        src, dest = dest, src
+        src, dest = dest, src # reverse src and dest
     elif line[1] == '-x': node = Node(NT_MSG_LOST)
     elif line[1] == 'x-':
         node = Node(NT_MSG_LOST)
         src, dest = dest, src
     elif line[1] == '-*': node = Node(NT_CREATE)
     elif line[1] == '<->': node = Node(NT_BIDIRECTIONAL)
+    elif line[1] == '-<': node = Node(NT_MSG_RETURN)
+    elif line[1] == '>-':
+        node = Node(NT_MSG_RETURN)
+        src, dest = dest, src
     elif line[1] == '-box': node = Node(NT_BOX)
     else:
         die('Invalid message line: %s' % line)
@@ -1508,7 +1575,7 @@ def computeGraph(initialActors, data):
                 nod.arrival = recvNode
                 graph.queue(recvNode)
 
-        elif nod.type == NT_BIDIRECTIONAL:
+        elif nod.type in [ NT_BIDIRECTIONAL, NT_MSG_RETURN ]:
             otherNode = Node(NT_MSG_RECV)
             otherNode.actorSrc = nod.actorDest
             otherNode.lifelineOwner = graph.getActiveActor(nod.actorDest)

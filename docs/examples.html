@@ -25,6 +25,7 @@
 <li><a href='#message_lost.msq'>06_message_lost.msq</a></li>
 <li><a href='#crossing.msq'>07_crossing.msq</a></li>
 <li><a href='#timeout.msq'>08_timeout.msq</a></li>
+<li><a href='#return_arrow.msq'>09_return_arrow.msq</a></li>
 <li><a href='#layout.msq'>15_layout.msq</a></li>
 <li><a href='#decoration.msq'>16_decoration.msq</a></li>
 <li><a href='#utf8.msq'>17_utf8.msq</a></li>
@@ -158,6 +159,21 @@ a -&gt; b &quot;I said hello!&quot;</code></pre>
 <img src="examples/08_timeout.png" />
 
 </div>
+<h2 id="return_arrow.msq">09_return_arrow.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor b Clock
+actor c Charlie
+
+[scenario]
+:
+a -&lt; b Get\ntime
+b &gt;- c Get\ntime
+:</code></pre>
+<div class="figure">
+<img src="examples/09_return_arrow.png" />
+
+</div>
 <h2 id="layout.msq">15_layout.msq</h2>
 <pre><code>[init]
 actor a Alice
@@ -232,7 +248,7 @@ a &lt;- b &quot;ok&quot;</code></pre>
 </div>
         </div> <!-- div class page -->
         <div class="footer">
-            Page updated on 19 May 2017
+            Page updated on 13 Jul 2017
         </div>
     </body>
 </html>
