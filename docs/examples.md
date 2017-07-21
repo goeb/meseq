@@ -121,21 +121,6 @@
 	
 ![](examples/08_timeout.png)
 
-## 09_return_arrow.msq
-
-	[init]
-	actor a Alice
-	actor b Clock
-	actor c Charlie
-	
-	[scenario]
-	:
-	a -< b Get\ntime
-	b >- c Get\ntime
-	:
-	
-![](examples/09_return_arrow.png)
-
 ## 15_layout.msq
 
 	[init]
