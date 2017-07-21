@@ -25,6 +25,7 @@
 <li><a href='#message_lost.msq'>06_message_lost.msq</a></li>
 <li><a href='#crossing.msq'>07_crossing.msq</a></li>
 <li><a href='#timeout.msq'>08_timeout.msq</a></li>
+<li><a href='#return_arrow.msq'>09_return_arrow.msq</a></li>
 <li><a href='#layout.msq'>15_layout.msq</a></li>
 <li><a href='#decoration.msq'>16_decoration.msq</a></li>
 <li><a href='#utf8.msq'>17_utf8.msq</a></li>
@@ -49,6 +50,7 @@ a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
 <div class="figure">
 <img src="examples/01_basic.png" />
+
 </div>
 <h2 id="create_actor.msq">02_create_actor.msq</h2>
 <pre><code>[init]
@@ -60,6 +62,7 @@ a -&gt; b stop
 b + end</code></pre>
 <div class="figure">
 <img src="examples/02_create_actor.png" />
+
 </div>
 <h2 id="box.msq">03_box.msq</h2>
 <pre><code>[init]
@@ -77,6 +80,7 @@ a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
 <div class="figure">
 <img src="examples/03_box.png" />
+
 </div>
 <h2 id="multilines.msq">04_multilines.msq</h2>
 <pre><code>[init]
@@ -90,6 +94,7 @@ a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
 <div class="figure">
 <img src="examples/04_multilines.png" />
+
 </div>
 <h2 id="double_arrow.msq">05_double_arrow.msq</h2>
 <pre><code>[init]
@@ -107,6 +112,7 @@ a &lt;-&gt; d Exchange\nkeys
 :</code></pre>
 <div class="figure">
 <img src="examples/05_double_arrow.png" />
+
 </div>
 <h2 id="message_lost.msq">06_message_lost.msq</h2>
 <pre><code>[init]
@@ -120,6 +126,7 @@ a -x b SYN
 a -&gt; b SYN</code></pre>
 <div class="figure">
 <img src="examples/06_message_lost.png" />
+
 </div>
 <h2 id="crossing.msq">07_crossing.msq</h2>
 <pre><code>[init]
@@ -134,6 +141,7 @@ a &lt;- b msg-y goto=L1
 :L1</code></pre>
 <div class="figure">
 <img src="examples/07_crossing.png" />
+
 </div>
 <h2 id="timeout.msq">08_timeout.msq</h2>
 <pre><code>[init]
@@ -149,6 +157,22 @@ a -&gt; a timeout\n6s
 a -&gt; b &quot;I said hello!&quot;</code></pre>
 <div class="figure">
 <img src="examples/08_timeout.png" />
+
+</div>
+<h2 id="return_arrow.msq">09_return_arrow.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor b Clock
+actor c Charlie
+
+[scenario]
+:
+a -&lt; b Get\ntime
+b &gt;- c Get\ntime
+:</code></pre>
+<div class="figure">
+<img src="examples/09_return_arrow.png" />
+
 </div>
 <h2 id="layout.msq">15_layout.msq</h2>
 <pre><code>[init]
@@ -166,6 +190,7 @@ a &lt;- b SYN,ACK
 a -&gt; b ACK</code></pre>
 <div class="figure">
 <img src="examples/15_layout.png" />
+
 </div>
 <h2 id="decoration.msq">16_decoration.msq</h2>
 <pre><code>[init]
@@ -184,6 +209,7 @@ b -box waiting... bgcolor=yellow
 :</code></pre>
 <div class="figure">
 <img src="examples/16_decoration.png" />
+
 </div>
 <h2 id="utf8.msq">17_utf8.msq</h2>
 <pre><code>[init]
@@ -195,6 +221,7 @@ a -&gt; b &quot;o&#249; vas-tu ?&quot;
 a &lt;- b &quot;au th&#233;&#226;tre&quot;</code></pre>
 <div class="figure">
 <img src="examples/17_utf8.png" />
+
 </div>
 <h2 id="include.msq">20_include.msq</h2>
 <pre><code>[init]
@@ -216,6 +243,7 @@ a -&gt; b &quot;do step&quot;
 a &lt;- b &quot;ok&quot;</code></pre>
 <div class="figure">
 <img src="examples/20_include.png" />
+
 </div>
 </div>
         </div> <!-- div class page -->

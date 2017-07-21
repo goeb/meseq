@@ -1,0 +1,11 @@
+[init]
+actor a Alice
+actor b Clock
+actor c Charlie
+
+[scenario]
+:
+a -< b Get\ntime
+b >- c Get\ntime
+:
+
