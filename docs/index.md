@@ -26,3 +26,11 @@ Example:
 
 ![](examples/01_basic.png)
 
+
+## Download
+
+Meseq v1.1 (direct link): [https://github.com/goeb/meseq/raw/v1.1/meseq](https://github.com/goeb/meseq/raw/v1.1/meseq)
+
+On Github.com: [https://github.com/goeb/meseq](https://github.com/goeb/meseq)
+
+Git clone: `git clone https://github.com/goeb/meseq.git`
