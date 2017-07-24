@@ -1,7 +1,9 @@
 
 # Meseq Overview
 
-Meseq is a free and open-source generator of message sequence charts.
+Meseq is a free and open-source generator of message sequence charts. Meseq is a general purpose tool for illustrating real-life scenarios. 
+
+Although (and because) it is not aimed at UML-like modeling nor bound to any programming paradigm, Meseq is suited to engineering design, and all domains where exchange of information matters.
 
 ## Inputs
 
