@@ -1,11 +1,22 @@
 #!/usr/bin/env python
 
+import os
 import Tkinter
 import ScrolledText
 
 
 def update_image():
     text = get(start, end)
+
+def typing(event):
+    #print("event=", event)
+    contents = msqgui.editor.get('1.0', Tkinter.END)
+    print("text=", contents)
+    f = open('.msqgui.msq', 'w')
+    f.write(contents)
+    f.close()
+    os.system('./meseq -o .msqgui.png .msqgui.msq')
+    msqgui.update_image()
 
 class MeseqGui(object):
 
@@ -16,11 +27,18 @@ class MeseqGui(object):
         self.image = Tkinter.Label(self.paned_window)
         self.paned_window.add(self.editor)
         self.paned_window.add(self.image)
+        self.editor.bind('<KeyRelease>', typing)
+        self.editor.bind('<ButtonRelease-2>', typing) # take pasting via the middle button
 
     def update_image(self):
-        img = Tkinter.PhotoImage(file="t.msq.png")
-        self.image.config(image=img)
-        self.img_ref = img # keep a reference
+        try:
+            img = Tkinter.PhotoImage(file='.msqgui.png')
+            self.image.config(image=img)
+            self.img_ref = img # keep a reference
+        except Tkinter.TclError:
+            self.image.config(text='no image')
+
+
 
     def display(self):
         self.update_image()
