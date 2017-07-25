@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+import Tkinter
+import ScrolledText
+
+root = Tkinter.Tk(className="MeseqGui")
+
+def mixed():
+    p = Tkinter.PanedWindow(root, orient=Tkinter.HORIZONTAL)
+    p.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
+    p.add(ScrolledText.ScrolledText(p))
+    if False:
+        img = Tkinter.PhotoImage(file="t.msq.png")
+        canvas = Tkinter.Canvas(p, width=350, height=200)
+        canvas.create_image(0, 0, anchor=Tkinter.NW, image=img)
+        p.add(canvas)
+    else:
+        img = Tkinter.PhotoImage(file="t.msq.png")
+        label = Tkinter.Label(p, image=img)
+        label.image = img # keep a reference
+        p.add(label)
+
+mixed()
+
+root.mainloop()
+
