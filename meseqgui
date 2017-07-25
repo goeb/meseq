@@ -3,24 +3,31 @@
 import Tkinter
 import ScrolledText
 
-root = Tkinter.Tk(className="MeseqGui")
 
-def mixed():
-    p = Tkinter.PanedWindow(root, orient=Tkinter.HORIZONTAL)
-    p.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
-    p.add(ScrolledText.ScrolledText(p))
-    if False:
+def update_image():
+    text = get(start, end)
+
+class MeseqGui(object):
+
+    def __init__(self):
+        self.root = Tkinter.Tk(className="MeseqGui")
+        self.paned_window = Tkinter.PanedWindow(self.root, orient=Tkinter.HORIZONTAL)
+        self.editor = ScrolledText.ScrolledText(self.paned_window, wrap=Tkinter.N)
+        self.image = Tkinter.Label(self.paned_window)
+        self.paned_window.add(self.editor)
+        self.paned_window.add(self.image)
+
+    def update_image(self):
         img = Tkinter.PhotoImage(file="t.msq.png")
-        canvas = Tkinter.Canvas(p, width=350, height=200)
-        canvas.create_image(0, 0, anchor=Tkinter.NW, image=img)
-        p.add(canvas)
-    else:
-        img = Tkinter.PhotoImage(file="t.msq.png")
-        label = Tkinter.Label(p, image=img)
-        label.image = img # keep a reference
-        p.add(label)
+        self.image.config(image=img)
+        self.img_ref = img # keep a reference
 
-mixed()
+    def display(self):
+        self.update_image()
+        self.paned_window.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
+        self.root.mainloop()
 
-root.mainloop()
+msqgui = MeseqGui()
+msqgui.display()
+
 
