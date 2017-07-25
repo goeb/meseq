@@ -5,47 +5,67 @@ import Tkinter
 import ScrolledText
 
 
+# temporary files
+TMP_MSQ = '.msqgui.msq'
+TMP_PNG = '.msqgui.png'
+
 def update_image():
     text = get(start, end)
 
-def typing(event):
-    #print("event=", event)
-    contents = msqgui.editor.get('1.0', Tkinter.END)
-    print("text=", contents)
-    f = open('.msqgui.msq', 'w')
+def callback_text_modified(event):
+    editor = event.widget
+    contents = editor.get('1.0', Tkinter.END)
+    run_meseq(contents)
+    editor.meseqgui.update_image(TMP_PNG)
+
+def run_meseq(contents):
+    # create a temporary file
+    f = open(TMP_MSQ, 'w')
     f.write(contents)
     f.close()
-    os.system('./meseq -o .msqgui.png .msqgui.msq')
-    msqgui.update_image()
+    os.system('meseq -o %s %s' % (TMP_PNG, TMP_MSQ))
 
 class MeseqGui(object):
 
     def __init__(self):
         self.root = Tkinter.Tk(className="MeseqGui")
         self.paned_window = Tkinter.PanedWindow(self.root, orient=Tkinter.HORIZONTAL)
+
+        # editor
         self.editor = ScrolledText.ScrolledText(self.paned_window, wrap=Tkinter.N)
+        self.editor.bind('<KeyRelease>', callback_text_modified)
+        self.editor.bind('<ButtonRelease-2>', callback_text_modified) # take pasting via the middle button
+        self.editor.meseqgui = self # keep track of self for the updating process
+
         self.image = Tkinter.Label(self.paned_window)
         self.paned_window.add(self.editor)
         self.paned_window.add(self.image)
-        self.editor.bind('<KeyRelease>', typing)
-        self.editor.bind('<ButtonRelease-2>', typing) # take pasting via the middle button
 
-    def update_image(self):
+    def update_image(self, filename):
         try:
-            img = Tkinter.PhotoImage(file='.msqgui.png')
+            img = Tkinter.PhotoImage(file=filename)
             self.image.config(image=img)
             self.img_ref = img # keep a reference
         except Tkinter.TclError:
             self.image.config(text='no image')
 
-
-
-    def display(self):
-        self.update_image()
+    def display(self, imagename=None):
+        self.update_image(imagename)
         self.paned_window.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
         self.root.mainloop()
 
-msqgui = MeseqGui()
-msqgui.display()
+
+def main():
+    # clean up the temporary files
+    for tmp in [ TMP_MSQ, TMP_PNG ]:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+    msqgui = MeseqGui()
+    msqgui.display(TMP_PNG)
+
+main()
 
 
