@@ -21,7 +21,7 @@ def callback_text_modified(event):
 def run_meseq(contents):
     # create a temporary file
     f = open(TMP_MSQ, 'w')
-    f.write(contents)
+    f.write(contents.encode('utf8'))
     f.close()
     os.system('meseq -o %s %s' % (TMP_PNG, TMP_MSQ))
 
