@@ -136,6 +136,26 @@
 	
 ![](examples/10_timeout.png)
 
+## 14_alignment.msq
+
+	[init]
+	actor a Alice
+	actor ""
+	actor ""
+	actor b Bob
+	
+	[scenario]
+	b -box "halign=left\nverify\n in the\ndatabase\n..." halign=left
+	a -box "default halign\n(halign=center)\ntwo\nthree"
+	
+	a -box "halign=center_left\nchecklist:\n\
+	1. one\n2. two\n3. three" halign=center_left
+	
+	b -box "align right\nabc\ndefghi" halign=right
+	:
+	
+![](examples/14_alignment.png)
+
 ## 15_layout.msq
 
 	[init]

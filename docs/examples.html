@@ -26,6 +26,7 @@
 <li><a href='#message_lost.msq'>07_message_lost.msq</a></li>
 <li><a href='#crossing.msq'>09_crossing.msq</a></li>
 <li><a href='#timeout.msq'>10_timeout.msq</a></li>
+<li><a href='#alignment.msq'>14_alignment.msq</a></li>
 <li><a href='#layout.msq'>15_layout.msq</a></li>
 <li><a href='#decoration.msq'>16_decoration.msq</a></li>
 <li><a href='#utf8.msq'>17_utf8.msq</a></li>
@@ -172,6 +173,26 @@ a -&gt; a timeout\n6s
 a -&gt; b &quot;I said hello!&quot;</code></pre>
 <div class="figure">
 <img src="examples/10_timeout.png" />
+
+</div>
+<h2 id="alignment.msq">14_alignment.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor &quot;&quot;
+actor &quot;&quot;
+actor b Bob
+
+[scenario]
+b -box &quot;halign=left\nverify\n in the\ndatabase\n...&quot; halign=left
+a -box &quot;default halign\n(halign=center)\ntwo\nthree&quot;
+
+a -box &quot;halign=center_left\nchecklist:\n\
+1. one\n2. two\n3. three&quot; halign=center_left
+
+b -box &quot;align right\nabc\ndefghi&quot; halign=right
+:</code></pre>
+<div class="figure">
+<img src="examples/14_alignment.png" />
 
 </div>
 <h2 id="layout.msq">15_layout.msq</h2>
