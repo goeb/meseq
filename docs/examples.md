@@ -77,7 +77,22 @@
 	
 ![](examples/05_double_arrow.png)
 
-## 06_message_lost.msq
+## 06_return_arrow.msq
+
+	[init]
+	actor a Alice
+	actor b Clock
+	actor c Charlie
+	
+	[scenario]
+	:
+	a -< b Get\ntime
+	b >- c Get\ntime
+	:
+	
+![](examples/06_return_arrow.png)
+
+## 07_message_lost.msq
 
 	[init]
 	actor a Alice
@@ -89,9 +104,9 @@
 	a -x b SYN
 	a -> b SYN
 	
-![](examples/06_message_lost.png)
+![](examples/07_message_lost.png)
 
-## 07_crossing.msq
+## 09_crossing.msq
 
 	[init]
 	actor a Alice
@@ -103,9 +118,9 @@
 	a -> b msg-x goto=L1
 	a <- b msg-y goto=L1
 	:L1
-![](examples/07_crossing.png)
+![](examples/09_crossing.png)
 
-## 08_timeout.msq
+## 10_timeout.msq
 
 	[init]
 	actor a Alice
@@ -119,22 +134,7 @@
 	a -> a timeout\n6s
 	a -> b "I said hello!"
 	
-![](examples/08_timeout.png)
-
-## 09_return_arrow.msq
-
-	[init]
-	actor a Alice
-	actor b Clock
-	actor c Charlie
-	
-	[scenario]
-	:
-	a -< b Get\ntime
-	b >- c Get\ntime
-	:
-	
-![](examples/09_return_arrow.png)
+![](examples/10_timeout.png)
 
 ## 15_layout.msq
 

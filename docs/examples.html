@@ -22,10 +22,10 @@
 <li><a href='#box.msq'>03_box.msq</a></li>
 <li><a href='#multilines.msq'>04_multilines.msq</a></li>
 <li><a href='#double_arrow.msq'>05_double_arrow.msq</a></li>
-<li><a href='#message_lost.msq'>06_message_lost.msq</a></li>
-<li><a href='#crossing.msq'>07_crossing.msq</a></li>
-<li><a href='#timeout.msq'>08_timeout.msq</a></li>
-<li><a href='#return_arrow.msq'>09_return_arrow.msq</a></li>
+<li><a href='#return_arrow.msq'>06_return_arrow.msq</a></li>
+<li><a href='#message_lost.msq'>07_message_lost.msq</a></li>
+<li><a href='#crossing.msq'>09_crossing.msq</a></li>
+<li><a href='#timeout.msq'>10_timeout.msq</a></li>
 <li><a href='#layout.msq'>15_layout.msq</a></li>
 <li><a href='#decoration.msq'>16_decoration.msq</a></li>
 <li><a href='#utf8.msq'>17_utf8.msq</a></li>
@@ -114,7 +114,22 @@ a &lt;-&gt; d Exchange\nkeys
 <img src="examples/05_double_arrow.png" />
 
 </div>
-<h2 id="message_lost.msq">06_message_lost.msq</h2>
+<h2 id="return_arrow.msq">06_return_arrow.msq</h2>
+<pre><code>[init]
+actor a Alice
+actor b Clock
+actor c Charlie
+
+[scenario]
+:
+a -&lt; b Get\ntime
+b &gt;- c Get\ntime
+:</code></pre>
+<div class="figure">
+<img src="examples/06_return_arrow.png" />
+
+</div>
+<h2 id="message_lost.msq">07_message_lost.msq</h2>
 <pre><code>[init]
 actor a Alice
 actor &quot;&quot;
@@ -125,10 +140,10 @@ actor b Bob
 a -x b SYN
 a -&gt; b SYN</code></pre>
 <div class="figure">
-<img src="examples/06_message_lost.png" />
+<img src="examples/07_message_lost.png" />
 
 </div>
-<h2 id="crossing.msq">07_crossing.msq</h2>
+<h2 id="crossing.msq">09_crossing.msq</h2>
 <pre><code>[init]
 actor a Alice
 actor &quot;&quot;
@@ -140,10 +155,10 @@ a -&gt; b msg-x goto=L1
 a &lt;- b msg-y goto=L1
 :L1</code></pre>
 <div class="figure">
-<img src="examples/07_crossing.png" />
+<img src="examples/09_crossing.png" />
 
 </div>
-<h2 id="timeout.msq">08_timeout.msq</h2>
+<h2 id="timeout.msq">10_timeout.msq</h2>
 <pre><code>[init]
 actor a Alice
 actor &quot;&quot;
@@ -156,22 +171,7 @@ b -box ignore
 a -&gt; a timeout\n6s
 a -&gt; b &quot;I said hello!&quot;</code></pre>
 <div class="figure">
-<img src="examples/08_timeout.png" />
-
-</div>
-<h2 id="return_arrow.msq">09_return_arrow.msq</h2>
-<pre><code>[init]
-actor a Alice
-actor b Clock
-actor c Charlie
-
-[scenario]
-:
-a -&lt; b Get\ntime
-b &gt;- c Get\ntime
-:</code></pre>
-<div class="figure">
-<img src="examples/09_return_arrow.png" />
+<img src="examples/10_timeout.png" />
 
 </div>
 <h2 id="layout.msq">15_layout.msq</h2>
@@ -248,7 +248,7 @@ a &lt;- b &quot;ok&quot;</code></pre>
 </div>
         </div> <!-- div class page -->
         <div class="footer">
-            Page updated on 21 Jul 2017
+            Page updated on 27 Jul 2017
         </div>
     </body>
 </html>
