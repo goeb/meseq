@@ -3,15 +3,13 @@
 import os
 import Tkinter
 import ScrolledText
+import tkFileDialog
+import tkMessageBox
 import argparse
 
 # temporary files
 TMP_MSQ = '.msqgui.msq'
 TMP_PNG = '.msqgui.png'
-
-def callback_text_modified(event):
-    editor = event.widget
-    editor.meseqgui.update_diagram()
 
 def run_meseq(contents):
     # create a temporary file
@@ -26,16 +24,51 @@ class MeseqGui(object):
         self.root = Tkinter.Tk(className="MeseqGui")
         self.paned_window = Tkinter.PanedWindow(self.root, orient=Tkinter.HORIZONTAL)
 
+        # menu bar
+        self.menubar = Tkinter.Menu(self.root)
+        filemenu = Tkinter.Menu(self.menubar, tearoff=0)
+        filemenu.add_command(label="Save", command=self.save)
+        filemenu.add_command(label="Quit", command=self.quit)
+        self.menubar.add_cascade(label="File", menu=filemenu)
+        self.root.config(menu=self.menubar)
+
+        # shorcuts
+        self.root.bind('<Control-q>', self.quit)
+        self.root.bind('<Control-s>', self.save)
+
         # editor
         self.editor = ScrolledText.ScrolledText(self.paned_window, wrap=Tkinter.N)
-        self.editor.bind('<KeyRelease>', callback_text_modified)
-        self.editor.bind('<ButtonRelease-2>', callback_text_modified) # take pasting via the middle button
-        self.editor.meseqgui = self # keep track of self for the updating process
+        self.editor.bind('<KeyRelease>', self.cb_text_changed)
+        self.editor.bind('<ButtonRelease-2>', self.cb_text_changed) # take pasting via the middle button
+        self.editor.focus()
 
         self.image = Tkinter.Label(self.paned_window)
         self.paned_window.add(self.editor)
         self.paned_window.add(self.image)
         self.filename = None
+        self.needs_save = False
+
+    def save(self, event=None):
+        contents = self.editor.get('1.0', Tkinter.END)
+        if self.filename:
+            f = open(self.filename, 'w')
+            f.write(contents.encode('utf8'))
+            f.close()
+            self.needs_save = False
+        else:
+            filename = tkFileDialog.asksaveasfilename()
+            if filename:
+                self.filename = filename
+                self.save()
+
+    def quit(self, event=None):
+        if self.needs_save:
+            do_quit_anyway = tkMessageBox.askyesno('Quit',
+                    'There are unsaved changes.\n' +
+                    'If you quit now, these changes will be lost.\n' +
+                    'Quit anyway?')
+            if not do_quit_anyway: return
+        self.root.quit()
 
     def set_file_contents(self, filename):
         if os.path.exists(filename):
@@ -44,6 +77,10 @@ class MeseqGui(object):
             self.editor.insert(Tkinter.END, text.decode('utf-8'))
             
         self.filename = filename
+
+    def cb_text_changed(self, event):
+        self.needs_save = True
+        self.update_diagram()
 
     def update_diagram(self):
         contents = self.editor.get('1.0', Tkinter.END)
