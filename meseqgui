@@ -3,20 +3,15 @@
 import os
 import Tkinter
 import ScrolledText
-
+import argparse
 
 # temporary files
 TMP_MSQ = '.msqgui.msq'
 TMP_PNG = '.msqgui.png'
 
-def update_image():
-    text = get(start, end)
-
 def callback_text_modified(event):
     editor = event.widget
-    contents = editor.get('1.0', Tkinter.END)
-    run_meseq(contents)
-    editor.meseqgui.update_image(TMP_PNG)
+    editor.meseqgui.update_diagram()
 
 def run_meseq(contents):
     # create a temporary file
@@ -40,6 +35,20 @@ class MeseqGui(object):
         self.image = Tkinter.Label(self.paned_window)
         self.paned_window.add(self.editor)
         self.paned_window.add(self.image)
+        self.filename = None
+
+    def set_file_contents(self, filename):
+        if os.path.exists(filename):
+            f = open(filename)
+            text = f.read()
+            self.editor.insert(Tkinter.END, text.decode('utf-8'))
+            
+        self.filename = filename
+
+    def update_diagram(self):
+        contents = self.editor.get('1.0', Tkinter.END)
+        run_meseq(contents)
+        self.update_image(TMP_PNG)
 
     def update_image(self, filename):
         try:
@@ -49,13 +58,22 @@ class MeseqGui(object):
         except Tkinter.TclError:
             self.image.config(text='no image')
 
-    def display(self, imagename=None):
-        self.update_image(imagename)
+    def display(self):
+        self.update_diagram()
         self.paned_window.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
         self.root.mainloop()
 
 
+def parse_cmdline():
+    parser = argparse.ArgumentParser(description=main.__doc__, prog='meseqgui')
+    parser.add_argument('file', nargs='?', help='msq file')
+    return parser.parse_args()
+
 def main():
+    args = parse_cmdline()
+
+    filename = args.file
+
     # clean up the temporary files
     for tmp in [ TMP_MSQ, TMP_PNG ]:
         try:
@@ -64,8 +82,10 @@ def main():
             pass
 
     msqgui = MeseqGui()
-    msqgui.display(TMP_PNG)
+    if filename: msqgui.set_file_contents(filename)
+    msqgui.display()
 
-main()
 
+if __name__ == '__main__':
+    main()
 
