@@ -3,6 +3,7 @@
 SRCS += index.md
 SRCS += examples.md
 SRCS += command_line.md
+SRCS += install.md
 
 BUILD_DIR=.
 
