@@ -3,12 +3,23 @@
 
 ## Meseq requirements
 
-- Python2
+### Operating System
+
+- Linux
+- Windows (via Cygwin)
+
+
+### Libraries needed by meseq
+
+- python2
 - cairo
 - pango
 - pangocairo
 
-At the moment, only Linux (and possibly Linux-likes) can meet these requirements.
+### Additional Libraries needed by meseqgui
+
+- python2-tkinter
+- X server and window manager
 
 
 
