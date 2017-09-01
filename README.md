@@ -25,7 +25,7 @@ More documentation here: <https://goeb.github.io/meseq/>
 
 Features planned:
 
-* improve layout: spaces between items (double arrow, etc.)
+* multicasting of messages
 * add graphical elements:
 	* styles of boxes (rectagular)
 	* horizontal lines

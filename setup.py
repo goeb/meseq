@@ -8,5 +8,14 @@ setup(name='meseq',
       author='Fred Hoerni',
       author_email='fhoerni@free.fr',
       url='https://github.com/goeb/meseq',
-      scripts=['meseq', 'meseqgui']
+      scripts=['meseq', 'meseqgui'],
+      requires=['cairo',
+                'pango',
+                'pangocairo',
+                'argparse',
+                'Tkinter',
+                'ScrolledText',
+                'tkFileDialog',
+                'tkMessageBox'
+               ]
      )
