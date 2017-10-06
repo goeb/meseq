@@ -79,6 +79,7 @@ class MeseqGui(object):
         self.filename = filename
 
     def cb_text_changed(self, event):
+        if event.char == '': return
         self.needs_save = True
         self.update_diagram()
 
