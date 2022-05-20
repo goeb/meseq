@@ -1,6 +1,5 @@
 
-Meseq is a prototype for generating sequence diagrams from a textual description.
-(see the examples)
+Meseq is a tool for generating sequence diagrams from a textual description.
 
 Meseq has the following features:
 - generate images in formats: PNG, SVG
