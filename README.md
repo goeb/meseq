@@ -14,6 +14,10 @@ Meseq has the following features:
 
 More documentation here: <https://goeb.github.io/meseq/>
 
+# Prerequisites
+
+- graphviz
+
 # Examples
 
 ![Example 1](https://raw.githubusercontent.com/goeb/meseq/master/examples/example_web.png)

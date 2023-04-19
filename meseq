@@ -1,33 +1,10 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # coding: utf-8
-import cairo
-import math
 import sys
 import os
-import pango
-import pangocairo
 import argparse
 
-VERSION = '1.1a'
-STEP = None
-
-# Test alignment
-V_ALIGN_BOTTOM         = 'bottom'
-V_ALIGN_CENTER         = 'center'
-V_ALIGN_TOP            = 'top'
-V_ALIGN_ONE_LINE_ABOVE = 'line-above'
-H_ALIGN_LEFT   = 'left'
-H_ALIGN_RIGHT  = 'right'
-H_ALIGN_CENTER = 'center'
-# center_left used to align to left side of a box
-H_ALIGN_LEFT_CENTER = 'center_left' # center the text, and then align left
-
-ARROW_NORMAL = 1 << 3
-ARROW_LOST   = 1 << 4
-
-ARROW_HEAD_LEFT  = 1
-ARROW_HEAD_RIGHT = 2
-ARROW_HEAD_HUGE  = 3
+VERSION = '2.0'
 
 Verbose = 0
 GlobalFont = None
@@ -58,93 +35,6 @@ def setGlobalFont(fontObject):
     global GlobalFont
     GlobalFont = fontObject
 
-def setGlobalBgcolor(c):
-    global GlobalBgcolor
-    GlobalBgcolor = c
-
-class TextAlignment:
-    def __init__(self, halign = H_ALIGN_CENTER, valign = V_ALIGN_CENTER):
-        self.halign = halign
-        self.valign = valign
-
-Colors = { 'white'   : 'fff',
-           'grey'    : '444',
-           'gray'    : '444',
-           'red'     : 'F00',
-           'orange'  : 'fb0',
-           'yellow'  : 'ff0',
-           'green'   : '0f0',
-           'blue'    : '00F',
-           'black'   : '000'
-           }
-
-class Color:
-    def __init__(self, colorspec):
-        """
-        @param colorspec
-            A string that specifies the color, either:
-            - a 3-hex-digit string RGB. Eg: '00F'
-            - a 6-hex-digit string RGB. Eg: '0000FF'
-            - a color name: 'red', 'green', etc. (see Colors)
-        """
-
-        colorspec = colorspec.lower()
-
-        if Colors.has_key(colorspec):
-            colorspec = Colors[colorspec]
-
-        if len(colorspec) == 3:
-            colorspec = colorspec[0] * 2 + colorspec[1] * 2 + colorspec[2] * 2
-
-        # now colorspec must be a 6-hex-digit string
-        try:
-            self._red = ord(colorspec[0:2].decode('hex'))
-            self._green = ord(colorspec[2:4].decode('hex'))
-            self._blue = ord(colorspec[4:6].decode('hex'))
-        except:
-            # error, use a grey
-            error("error colorspec=", colorspec)
-            self._red = 0x88
-            self._green = 0x88
-            self._blue = 0x88
-
-    def red(self):
-        return self._red * 1.0 / 0xFF
-
-    def green(self):
-        return self._green * 1.0 / 0xFF
-
-    def blue(self):
-        return self._blue * 1.0 / 0xFF
-
-    def __str__(self):
-        return "<Color:%02x%02x%02x>" % (self._red, self._green, self._blue)
-
-
-class Options(dict):
-    def __init__(self):
-        self['label'] = ''
-        self['color'] = 'black'
-        self['bgcolor'] = None
-        self['halign'] = H_ALIGN_CENTER
-
-    def update(self, otherOpts):
-        """Options are taken from 'otherOpts', that must be a dictionnary."""
-        for key in otherOpts:
-            self.add(key, otherOpts[key])
-
-    def add(self, key, value):
-        self[key] = value
-
-    def getLabel(self):
-        return self['label']
-
-    def getColor(self):
-        return self['color']
-
-    def getBgcolor(self):
-        if self['bgcolor'] in [ None, 'none' ]: return GlobalBgcolor
-        return self['bgcolor']
 
 def setSourceColor(cairoCtx, colorName):
     if colorName in [ None, 'none' ]:
@@ -153,585 +43,119 @@ def setSourceColor(cairoCtx, colorName):
         colorObject = Color(colorName)
         cairoCtx.set_source_rgb(colorObject.red(), colorObject.green(), colorObject.blue())
 
+
+def nodeid(rowid, colid):
+    return "row%d_col%d" % (rowid, colid)
+
+
 class SequenceDiagram(object):
 
-    def __init__(self, filename, matrix, pixWidth, imgFormat, mscInit):
-        global STEP
-
-        self.matrix = matrix
+    def __init__(self, outputfile, matrix, pixWidth, imgFormat, mscInit):
 
         nActors = len(matrix.rows[-1])
-        nxTiles = 3 * nActors + 1 + 2
-        STEP = 1.0 * pixWidth / nxTiles
 
-        # pr compute the size taken by the text (for autoadjust)
+        dot = self.draw(matrix)
 
-        # use a temporary cairo context
-        tmpSurface = cairo.SVGSurface(None, 1, 1)
-        self.cr = cairo.Context(tmpSurface)
-        rowsHeight = self.adjustMatrix()
+        with open('tmp.dot', 'w') as f:
+            f.write(dot)
 
-        nMessages = rowsHeight
+        os.system("dot -T%s < tmp.dot > %s" % (imgFormat, outputfile))
 
-        width = pixWidth;
-        nyTiles = nMessages + 2
-        height = nyTiles * STEP
 
-        debug("width=", width, ", height=", height, ", STEP=", STEP)
+    def draw(self, matrix):
 
-        if imgFormat == 'png': svgFilename = None
-        else: svgFilename = filename
+        dot = '''strict digraph {
+            splines=line // have strait edges
+            fontname="Helvetica,Arial,sans-serif"
+            layout=dot
+        '''
+        # draw nodes and register their given name: nodeid(rowid, colid)
+        for rowid in range(len(matrix.rows)):
+            row = matrix.rows[rowid]
 
-        self.surface = cairo.SVGSurface(svgFilename, width, height)
-        cr = self.cr = cairo.Context(self.surface)
+            # draw invisible horizontal dependencies
+            dot += """edge [style=invis,weight=10]\n"""
+            horizontal_nodes = []
+            for colid in range(len(row)):
+                horizontal_nodes.append(nodeid(rowid, colid))
+            dot += 'rank=same {' + ' -> '.join(horizontal_nodes) + '}\n'
 
-        #cr.scale(width/100.0, height/100.0)
-        cr.set_line_width(STEP/40)
+            for colid in range(len(row)):
 
-        if GlobalBgcolor:
-            # draw background
-            cr.rectangle(0, 0, width, height)
-            c = GlobalBgcolor
-            setSourceColor(cr, c)
-            cr.fill()
-
-        self.draw()
-
-        if mscInit.border:
-            # draw black border
-            cr.set_line_width( max(cr.device_to_user_distance(2, 2)) )
-            setSourceColor(cr, 'black')
-            cr.rectangle(0, 0, width, height)
-            cr.stroke()
-
-
-        if imgFormat == 'png':
-            self.surface.write_to_png(filename)
-
-        cr.show_page()
-        self.surface.finish()
-
-    def adjustMatrix(self):
-        rowShift = 0
-        for rowid in range(0, len(self.matrix.rows)):
-            # compute the height of the row (after the size of the text)
-            row = self.matrix.rows[rowid]
-            rowHeight = row.height # original height
-            debug("rowHeight: ", rowHeight, "STEP: ", STEP)
-            for i in range(len(row)):
-                node = row[i]
-                if node is None: continue
-
-                # shift 'y' of nodes of the current row
-                if hasattr(node, 'y'):
-                    node.y += rowShift - rowid
-
-                # compute height
-                nodopts = node.options
-                if node.type in [ NT_MSG_SEND, NT_MSG_LOST, NT_MSG_RETURN, NT_CREATE, NT_BIDIRECTIONAL, NT_TERMINATE, NT_ACTOR, NT_BOX ]:
-                    wText, hText = self.getTextSize(nodopts['label'])
-                    debug("label: ", nodopts['label'], "hText=", hText, "hText/STEP: ", hText/STEP)
-
-                    if hText/STEP > rowHeight: rowHeight = int(hText/STEP)+1
-
-            debug("rowHeight (after): ", rowHeight)
-
-            # store the height of the row for usage by the drawing method
-            row.height = rowHeight
-
-            rowShift += rowHeight
-        return rowShift
-
-
-    def init(self):
-        setSourceColor(self.cr, 'black')
-        self.cr.set_line_width(STEP/40)
-
-    def cross(self, x, y, color, text = None):
-        # draw an 'x'
-        self.cr.save()
-        setSourceColor(self.cr, color)
-        self.cr.translate(x, y)
-
-        if text is not None:
-            # write the text
-            self.text(STEP/2, 0, text, color, GlobalBgcolor, TextAlignment(halign=H_ALIGN_LEFT))
-
-        self.cr.rotate(math.pi/4)
-
-        size = STEP/5
-        self.cr.move_to(-size, 0)
-        self.cr.line_to(size, 0)
-
-        self.cr.move_to(0, -size)
-        self.cr.line_to(0, size)
-
-        self.cr.stroke()
-
-        self.cr.restore()
-
-    def dot(self, x, y):
-
-        self.cr.arc(x, y, STEP/20, 0, 2 * math.pi)
-        self.cr.fill()
-
-
-    def boxWithRoundSides(self, x, y, text, color, bgcolor, halign):
-
-        # the box
-        # default size
-        width = STEP * 2
-        height = STEP * 1
-
-        # adjust size to text
-        wText, hText = self.getTextSize(text)
-        if wText >= width-STEP/2: width = wText + STEP/2 # take a margin because of the rounded part
-        if hText >= height: height = STEP * int(1+hText/STEP)
-
-        angle = math.atan(height/width)
-        radius = math.sqrt(height*height + width*width)/2
-        dx = width/2
-
-        # adjust y
-        y -= STEP/2
-        # 'y' specifies now the top of the box
-
-        # draw background first
-        setSourceColor(self.cr, bgcolor)
-
-        self.cr.rectangle(x-dx, y, 2*dx, height)
-        self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
-        self.cr.arc(x, y+height/2, radius, -angle, angle)
-        self.cr.fill()
-    
-        # border and text
-        setSourceColor(self.cr, color)
-
-        self.cr.arc(x, y+height/2, radius, -angle, angle)
-        self.cr.arc(x, y+height/2, radius, math.pi-angle, math.pi+angle)
-
-        # draw the horizontal lines
-        self.cr.move_to(x-dx, y)
-        self.cr.line_to(x+dx, y)
-
-        self.cr.move_to(x-dx, y+height)
-        self.cr.line_to(x+dx, y+height)
-        self.cr.stroke()
-
-        # the text
-        self.text(x, y+height/2, text, color, bgcolor, TextAlignment(halign=halign))
-
-    def box(self, x, y, text, color, bgcolor, halign):
-        """Draw a box around (x, y), with centered text."""
-
-        # size of the box
-        width = STEP * 2
-        height = STEP * 1
-
-        # adjust size to text
-        wText, hText = self.getTextSize(text)
-        if wText >= width-STEP/2: width = wText + STEP/2
-        if hText >= height: height = STEP * int(1+hText/STEP)
-
-        # draw the background
-        setSourceColor(self.cr, bgcolor)
-        self.cr.rectangle(x-width/2, y-STEP/2, width, height)
-        self.cr.fill()
-        self.cr.stroke()
-
-        setSourceColor(self.cr, color)
-
-        # the text
-        self.text(x, y-STEP/2+height/2, text, color, bgcolor, TextAlignment(halign=halign, valign=V_ALIGN_CENTER))
-
-        # draw the border
-        self.cr.rectangle(x-width/2, y-STEP/2, width, height)
-        self.cr.stroke()
-
-        return width, height
-    
-    def lifeLine(self, x, y0, y1):
-
-        debug("lifeLine(%d, %d, %d" % (x, y0, y1))
-        self.cr.move_to(x, y0)
-        self.cr.line_to(x, y1)
-        self.cr.stroke()
-
-    def getTextLayout(self, text):
-        pangocairoCtx = pangocairo.CairoContext(self.cr)
-        pangocairoCtx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-        layout = pangocairoCtx.create_layout()
-        fontname = GlobalFont.family + ' ' + GlobalFont.style
-        fontname += ' %d' % GlobalFont.getSize(STEP/33) # 33 is empirical
-        font = pango.FontDescription(fontname)
-        layout.set_font_description(font)
-        layout.set_text(text)
-        layout.set_alignment(pango.ALIGN_CENTER)
-        return pangocairoCtx, layout
-
-    def getTextSize(self, text):
-        _, layout = self.getTextLayout(text)
-        w, h = layout.get_size()
-        w = w / pango.SCALE
-        h = h / pango.SCALE
-        return w, h
-
-    def text(self, x, y, text, color, bgcolor, align = TextAlignment()):
-
-        pangocairoCtx, layout = self.getTextLayout(text)
-        w, h = layout.get_size()
-        w = w / pango.SCALE
-        h = h / pango.SCALE
-
-        attr = pango.AttrList()
-
-        if bgcolor is None:
-            pass
-        else:
-            bgc = Color(bgcolor)
-            red = int(bgc.red()*65535)
-            green = int(bgc.green()*65535)
-            blue = int(bgc.blue()*65535)
-            bcAttribute = pango.AttrBackground(red, green, blue, 0, len(text))
-            attr.insert(bcAttribute)
-
-        layout.set_attributes(attr)
-
-        if align.halign == H_ALIGN_LEFT:    layout.set_alignment(pango.ALIGN_LEFT)
-        elif align.halign == H_ALIGN_RIGHT: layout.set_alignment(pango.ALIGN_RIGHT)
-        else:
-            x -= w/2
-            if align.halign == H_ALIGN_LEFT_CENTER: layout.set_alignment(pango.ALIGN_LEFT)
-            else:                                   layout.set_alignment(pango.ALIGN_CENTER)
-
-        self.cr.save()
-        
-        if align.valign == V_ALIGN_BOTTOM:
-            self.cr.translate(x, y-h)
-        
-        elif align.valign == V_ALIGN_TOP:
-            self.cr.translate(x, y)
-
-        elif align.valign == V_ALIGN_ONE_LINE_ABOVE:
-            firstLine = layout.get_line_readonly(0)
-            ((_,_,_,_),(_,_,_,firstLineHeight)) = firstLine.get_pixel_extents()
-            self.cr.translate(x, y-firstLineHeight*0.9)
-
-        else:
-            # center vertically
-            self.cr.translate(x, y-h/2)
-
-
-        pangocairoCtx.update_layout(layout)
-        pangocairoCtx.show_layout(layout)
-        self.cr.restore()
-
-
-    def bidirectional(self, x0, y0, x1, text, color, bgcolor):
-        """Draw a massive bidirectional arrow.
-        """
-        if x1 == x0:
-            error("error, bidirectional")
-            return
-
-        if x1 < x0:
-            x0, x1 = x1, x0 # swap variables
-
-        # add background
-        setSourceColor(self.cr, GlobalBgcolor)
-        self.cr.rectangle(x0+STEP/2, y0-STEP/2, x1-x0-STEP, STEP)
-        self.cr.fill()
-
-        # foreground
-        setSourceColor(self.cr, color)
-        self.arrowHead(x0, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_LEFT])
-        self.arrowHead(x1, y0, [ARROW_HEAD_HUGE, ARROW_HEAD_RIGHT])
-
-        # the lines between the heads
-        self.cr.move_to(x0+STEP/2, y0-STEP/2)
-        self.cr.line_to(x1-STEP/2, y0-STEP/2)
-
-        self.cr.move_to(x0+STEP/2, y0+STEP/2)
-        self.cr.line_to(x1-STEP/2, y0+STEP/2)
-        self.cr.stroke()
-
-        # the text
-        x = x0 +(x1-x0) / 2
-        self.text(x, y0, text, color, bgcolor)
-
-    def returnArrow(self, x0, y0, x1, text, color, bgcolor):
-        if x1 == x0:
-            error("error, arrow")
-            return
-
-        elif x1 < x0:
-            sign = -1 # indicate that the arrow is from right to left
-
-        else:
-            sign = 1
-
-        size = abs(x1-x0)
-
-        # Do transforming, in order to work easily
-        self.cr.save()
-        self.cr.translate(x0, y0)
-
-        xHead = size * sign
-
-        # a small dot for the starting point of the arrow
-        self.dot(0, 0)
-
-        # text
-        # place text in the center of the arrow
-        x = xHead / 2
-        y = 0
-        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_ONE_LINE_ABOVE))
-
-        # the main line of the arrow
-        setSourceColor(self.cr, color)
-        self.cr.move_to(0, 0)
-        self.cr.line_to(xHead, 0)
-        self.cr.stroke()
-
-        # head of the arrow
-        if sign > 0:
-            flag = ARROW_HEAD_RIGHT
-            flagReturn = ARROW_HEAD_LEFT
-        else:
-            flag = ARROW_HEAD_LEFT
-            flagReturn = ARROW_HEAD_RIGHT
-
-        self.arrowHead(xHead, y, [flag])
-
-        yDelta = STEP/2
-
-        # a small curve to indicate the return
-        self.cr.arc(xHead, y+yDelta/2, yDelta/2, -sign*math.pi/2, sign*math.pi/2)
-
-        # the return part
-        y += yDelta
-        self.cr.move_to(0, y)
-        self.cr.line_to(xHead, y)
-        self.cr.stroke()
-        self.arrowHead(0, y, [flagReturn])
-       
-        # Revert the transforming
-        self.cr.restore()
-
-
-    def arrow(self, x0, y0, x1, y1, text, color, bgcolor, flags = ARROW_NORMAL):
-
-        if x1 == x0:
-            error("error, arrow")
-            return
-
-        elif x1 < x0:
-            sign = -1 # indicate that the arrow is from right to left
-
-        else:
-            sign = 1
-
-        angle = math.atan((y1-y0)/(x1-x0))
-
-        debug("angle=", angle, ", y0=", y0, ", y1=", y1)
-        size = math.sqrt((y1-y0)**2 + (x1-x0)**2)
-
-        if flags == ARROW_LOST: size = size * 3 / 4
-
-        # Do transforming, in order to work easily
-        self.cr.save()
-        self.cr.translate(x0, y0)
-        self.cr.rotate(angle)
-
-        xHead = size * sign
-
-        # a small dot for the starting point of the arrow
-        self.dot(0, 0)
-
-        # text
-        # place text in the center of the arrow if arrrow is horizontal
-        # else place it at first 1/3
-        # so that text of crossing arrows do not conflict too much
-        # (test that angle is close to zero, due to rounding approximation)
-        if abs(y1-y0) < 0.001: x = xHead / 2
-        else: x = xHead / 3
-        y = 0
-        self.text(x, y, text, color, bgcolor, TextAlignment(valign=V_ALIGN_ONE_LINE_ABOVE))
-
-        # the main line of the arrow
-        setSourceColor(self.cr, color)
-        self.cr.move_to(0, 0)
-
-        self.cr.line_to(xHead, 0)
-        self.cr.stroke()
-
-        yHead = 0
-
-        if flags == ARROW_NORMAL:
-            # head of the arrow
-            if sign > 0: flag = ARROW_HEAD_RIGHT
-            else: flag = ARROW_HEAD_LEFT
-            self.arrowHead(xHead, yHead, [flag])
-        elif flags == ARROW_LOST:
-            # draw an 'x'
-            self.cross(xHead, yHead, color)
-
-        else:
-            error("error, invalid flag:", flags)
-        
-        # Revert the transforming
-        self.cr.restore()
-
-
-    def arrowHead(self, x, y, flags):
-
-        if ARROW_HEAD_HUGE in flags:
-            # huge arrow head
-            arrowSize = STEP
-            hAngle = math.pi / 4
-        else:
-            # regular size and angle
-            arrowSize = STEP/4 # hypothenuse
-            hAngle = math.pi / 6
-
-        if ARROW_HEAD_RIGHT in flags: sign = 1
-        else: sign = -1
-
-        x2 = x - arrowSize * math.cos(hAngle) * sign
-        y2 = y - arrowSize * math.sin(hAngle)
-        self.cr.move_to(x, y)
-        self.cr.line_to(x2, y2)
-
-        x3 = x - arrowSize * math.cos(hAngle) * sign
-        y3 = y + arrowSize * math.sin(hAngle)
-        self.cr.move_to(x, y)
-        self.cr.line_to(x3, y3)
-        self.cr.stroke()
-
-
-    def messageToSelf(self, x0, y0, y1, text, color, bgcolor):
-
-        setSourceColor(self.cr, color)
-
-        self.cr.move_to(x0, y0)
-        self.cr.line_to(x0 + STEP, y0)
-        self.cr.line_to(x0 + STEP, y1)
-        self.cr.line_to(x0, y1)
-
-        self.arrowHead(x0, y1, [ARROW_HEAD_LEFT])
-
-        # set text
-        self.text(x0 + STEP*1.5, y0+STEP*0.5, text, color, bgcolor, TextAlignment(halign=H_ALIGN_LEFT))
-
-    def getx(self, lifelineNum):
-        """Convert a lifeline number to an x offset on the grid."""
-        marginLeft = STEP * 3
-        lifelinePadding = STEP * 3
-        return marginLeft + lifelinePadding * lifelineNum
-
-    def gety(self, yMatrix):
-        marginTop = STEP
-        return marginTop + STEP * yMatrix
-
-    def debug(self, y, msg):
-        self.dot(0, y)
-        self.text(0, y, msg, 'black', 'white')
-
-    def draw(self):
-
-        self.init()
-
-        y = 0
-        y += STEP
-        for row in self.matrix.rows:
-            debug("row.height:", row.height)
-            rowHeight = row.height * STEP
-
-            # draw lifelines first, so that they appear below the others widgets
-            for i in range(len(row)):
-                x = self.getx(i)
-                node = row[i]
-
-                if node is None: continue
-
-                color = node.lifelineOwner.options.getColor()
-                setSourceColor(self.cr, color)
-                if node.type == NT_TERMINATE:
-                    # short life line
-                    self.lifeLine(x, y-STEP/2, y)
-                    # draw an 'x'
-                    self.cross(x, y, color, node.options['label'])
-                else:
-                    # regular life line
-                    self.lifeLine(x, y-STEP/2, y-STEP/2+rowHeight)
-
-
-            # now draw the other widgets
-            for i in range(len(row)):
-                x = self.getx(i)
-                node = row[i]
-                #self.debug(y, 'xx')
+                node = row[colid]
 
                 if node is None:
+                    # draw an invisible node
+                    dot += nodeid(rowid, colid)
+                    dot += """ [shape=none,style=invis,label=""]\n"""
                     continue
 
-                nodopts = node.options
-                color = nodopts.getColor()
-                setSourceColor(self.cr, color)
-        
-                if node.type == NT_ACTOR:
-                    # the box
-                    w, h = self.box(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
+                node.nodeid = nodeid(rowid, colid) # store the id for the second pass
 
-                    # the arrow
-                    if hasattr(node, 'originator'):
-                        originator = node.originator
-                        origOpts = originator.options
-                        x0 = self.getx(originator.x)
-                        y0 = self.gety(originator.y)
-                        if originator.x < node.x: x1 = self.getx(node.x) - w/2
-                        else: x1 = self.getx(node.x) + w/2
-                        y1 = self.gety(node.y)
-                        self.arrow(x0, y0, x1, y1, origOpts['label'], origOpts.getColor(), origOpts.getBgcolor())
-
-                elif node.type == NT_MSG_SEND:
-                    y1 = self.gety(node.arrival.y)
-
-                    if node.actorSrc == node.actorDest:
-                        # message to self
-                        self.messageToSelf(x, y, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
-
+                if rowid > 0:
+                    # establish the life line with the above item
+                    if matrix.rows[rowid-1][colid] is None:
+                        # draw a line
+                        dot += """edge [weight=1000,style=invis]\n"""
+                        dot += "%s -> %s\n" % (nodeid(rowid-1, colid), node.nodeid)
                     else:
-                        x1 = self.getx(node.arrival.x)
-                        self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+                        # draw an invisible dependency
+                        dot += """edge [weight=1000,arrowhead=none,style=solid]\n"""
+                        dot += "%s -> %s\n" % (nodeid(rowid-1, colid), node.nodeid)
 
-                elif node.type == NT_MSG_LOST:
-                    xArrival = self.matrix.getIndex(node.actorDest)
-                    x1 = self.getx(xArrival)
-                    y1 = y
-                    self.arrow(x, y, x1, y1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), ARROW_LOST)
+                if node.type == NT_TERMINATE:
+                    # draw an 'x'
+                    dot += node.nodeid
+                    dot += """ [shape=none,label="x"]\n"""
 
-                elif node.type == NT_BOX:
-                    self.boxWithRoundSides(x, y, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor(), nodopts['halign'])
+                elif node.type in [ NT_ACTOR, NT_BOX ]:
+                    # draw a box with label
+                    dot += node.nodeid
+                    dot += """ [shape=box,label="%s"]\n""" % node.options['label']
 
-                elif node.type == NT_MSG_RETURN:
-                    x1 = self.getx(node.arrival.x)
-                    self.returnArrow(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+                else:
+                    # draw a small dot
+                    dot += node.nodeid
+                    dot += """ [style=invis,shape=circle,width=0.01,fixedsize=true,label=""]\n"""
 
-                elif node.type == NT_BIDIRECTIONAL:
-                    x1 = self.getx(node.arrival.x)
-                    self.bidirectional(x, y, x1, nodopts['label'], nodopts.getColor(), nodopts.getBgcolor())
+
+        # do a second pass for drawing relationships
+        for rowid in range(len(matrix.rows)):
+            row = matrix.rows[rowid]
+
+            for colid in range(len(row)):
+                node = row[colid]
+                if node is None: continue
+
+                if node.type == NT_ACTOR and hasattr(node, 'originator'):
+                    # draw an edge from the originator to the current node
+                    dot += node.originator.nodeid + ' -> ' + node.nodeid
+                    dot += """ [label="%s"]\n""" % node.originator.options['label']
 
                 elif node.type == NT_CREATE:
                     # do not draw anything
-                    # the arrow and the actor will be drawn on the node NT_ACTOR
+                    # the arrow and the actor is drawn on the node NT_ACTOR
                     pass
 
-                else:
-                    pass
+                elif node.type == NT_MSG_SEND:
+                    if node.actorSrc == node.actorDest:
+                        # message to self not supported
+                        pass
+                    else:
+                        dot += node.nodeid + ' -> ' + node.arrival.nodeid
+                        dot += """ [style=solid,weight=0,arrowhead=normal,label="%s"]\n""" % node.options['label']
 
-            y += rowHeight
 
+                # if node.type == NT_MSG_LOST
+                #     TODO get nodeid of the destination
+                # if node.type == NT_MSG_RETURN
+                #     TODO feasible ?
+                # if node.type == NT_BIDIRECTIONAL
+                #     TODO feasible ?
+                # 
+
+        dot += '}'
+        return dot
 
 
 # Node types
@@ -751,9 +175,9 @@ NT_LIFELINE  = 'lifeline'
 class Node:
     def __init__(self, type):
         self.type = type
-        self.actorSrc = None
-        self.actorDest = None
-        self.options = Options()
+        self.actorSrc = None   # for message-related nodes, id of the actor sending a message
+        self.actorDest = None  # for message-related nodes, id of the actor receiving a message
+        self.options = {'label': ''}
         self.id = None # used for 'goto'
         self.isTall = False # indicate if the picture is vertically tall (box, etc.)
 
@@ -832,7 +256,7 @@ def lexerParseDollar(line, i):
         if line[i] != '}': die("Missing closing '}': '%s'" % line)
         i += 1
         
-    if os.environ.has_key(envkey): envvalue = os.environ[envkey]
+    if envkey in os.environ: envvalue = os.environ[envkey]
     else: envvalue = ''
     
     return envvalue, i
@@ -978,52 +402,12 @@ def tokenParseActor(tokens):
 
     options = tokenParseKeyEqualValue(tokens[1:])
 
-    if not options.has_key('label'): options['label'] = actorid
+    if not 'label' in options: options['label'] = actorid
 
     node = Node(NT_ACTOR)
     node.actorSrc = actorid
     node.options.update(options)
     return node
-
-
-def getActorOld(actorid, label):
-    """DEPRECATED (used by tokenParseActorsOld)"""
-    if actorid == '': return None
-    node = Node(NT_ACTOR)
-    node.actorSrc = actorid
-    node.options.add('label', label)
-    return node
-
-def tokenParseActorsOld(tokens):
-    """Expected tokens:
-    actorid [ '=' actorLabel ] ...
-
-    THIS FUNCTION IS DEPRECATED
-
-    """
-    actors = []
-    actorid = None
-    gotEqual = False
-    for token in tokens:
-        if token == '=':
-            if actorid is None:
-                die("tokenParseActors Invalid = without actorid: %s" % tokens)
-            gotEqual = True
-        elif gotEqual:
-            actors.append( getActorOld(actorid, token) )
-            actorid = None
-            gotEqual = False
-        elif actorid is None:
-            actorid = token
-        else:
-            # previous token was actor id without label
-            actors.append( getActorOld(actorid, actorid) )
-            actorid = token
-
-    if actorid is not None:
-        actors.append( getActorOld(actorid, actorid) )
-
-    return actors
 
 
 def tokenParseKeyEqualValue(line):
@@ -1072,7 +456,7 @@ def tokenParseScenarioLine(line):
     if line[0] == ':':
         node = Node(NT_COLON)
         if len(line) == 1:
-            pass # anonymous label, used for isnerting a blank line
+            pass # anonymous label, used for inserting a blank line
         elif len(line) == 2:
             # named label
             node.id = line[1]
@@ -1117,7 +501,7 @@ def tokenParseScenarioLine(line):
     if node.type != NT_BOX:
         node.actorDest = dest
     else:
-        node.options.add('label', dest)
+        node.options['label'] = dest
     # parse the options
     options = tokenParseKeyEqualValue(line[3:])
     node.options.update(options)
@@ -1209,7 +593,7 @@ class MsqFile:
 
             elif tokens[0] == '[':
                 self.currentSection = parseSectionName(tokens)
-                if self.sections.has_key(self.currentSection):
+                if self.currentSection in self.sections:
                     die('Section redeclared: ' + self.currentSection)
                 self.sections[self.currentSection] = []
 
@@ -1224,7 +608,7 @@ class MsqFile:
             die('Cyclic include of section: %s' % (section))
         self.includedSections.append(section)
 
-        if not self.sections.has_key(section):
+        if not section in self.sections:
             die('%s: No such file or section, thus cannot include' % (section) )
 
         n = len(self.sections[section])
@@ -1289,16 +673,8 @@ def pasrseMscInit(linesOfTokens):
 
     mscInit = MscInit()
     for line in linesOfTokens:
-        if line[0] == 'actors':
-            info("""
-            DEPRECATED:
-            In [init], the syntax 'actors' is deprecated
-            and will be removed in the future.
-            Use instead 'actor' (one actor description by line)
-            """)
-            initialActors = tokenParseActorsOld(line[1:])
             
-        elif line[0] == 'actor':
+        if line[0] == 'actor':
             actor = tokenParseActor(line[1:])
             mscInit.initialActors.append(actor)
 
@@ -1425,7 +801,6 @@ class SequenceGraph:
                     row[i].lifelineOwner = self.activeActors[i]
 
     def insertBlankRow(self):
-        self.addNewRow(True)
         self.addNewRow()
 
     def addNewRow(self, halfsize = False):
@@ -1531,10 +906,10 @@ class SequenceGraph:
         while i < len(self.pendingMessages):
             node = self.pendingMessages[i]
 
-            if node.options.has_key('goto'):
+            if 'goto' in node.options:
                 gotoId = node.options['goto']
                 # in the past, so the node can be placed
-                if self.gotoLabels.has_key(gotoId): gotoId = None
+                if gotoId in self.gotoLabels: gotoId = None
 
             else:
                 gotoId = None
@@ -1571,8 +946,8 @@ def computeGraph(initialActors, data):
                 recvNode.actorSrc = nod.actorDest
                 recvNode.lifelineOwner = graph.getActiveActor(nod.actorDest)
 
-                if nod.options.has_key('goto'):
-                    recvNode.options.add('goto', nod.options['goto'])
+                if 'goto' in nod.options:
+                    recvNode.options['goto'] = nod.options['goto']
                 nod.arrival = recvNode
                 graph.queue(recvNode)
 
@@ -1594,12 +969,12 @@ def computeGraph(initialActors, data):
             # place new actor
             newActor = Node(NT_ACTOR)
             newActor.actorSrc = nod.actorDest
-            newActor.options.add('label', newActor.actorSrc) # possibliy oevrwritten by 'actor_label'
+            newActor.options['label'] = newActor.actorSrc # possibliy oevrwritten by 'actor_label'
             newActor.originator = nod
             for key in nod.options:
                 # Options starting by 'actor_' are intended for the new actor
                 if key[0:6] == 'actor_':
-                    newActor.options.add(key[6:], nod.options[key])
+                    newActor.options[key[6:]] = nod.options[key]
 
             nod.arrival = newActor
             graph.addActiveActor(newActor)

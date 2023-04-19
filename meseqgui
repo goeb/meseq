@@ -1,10 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
-import Tkinter
-import ScrolledText
-import tkFileDialog
-import tkMessageBox
+import tkinter
+import tkinter.scrolledtext
 import argparse
 
 # temporary files
@@ -14,21 +12,29 @@ TMP_PNG = '.msqgui.png'
 def run_meseq(contents):
     # create a temporary file
     f = open(TMP_MSQ, 'w')
-    f.write(contents.encode('utf8'))
+    f.write(contents)
     f.close()
-    os.system('meseq -o %s %s' % (TMP_PNG, TMP_MSQ))
+    if 'MESEQ' in os.environ:
+        cmd = [os.environ['MESEQ']]
+    else:
+        # use meseq in PATH
+        cmd = ['meseq']
+
+    cmd += ['-o', TMP_PNG, TMP_MSQ]
+    cmd = ' '.join(cmd)
+    os.system(cmd)
 
 class MeseqGui(object):
 
     def __init__(self):
-        self.root = Tkinter.Tk(className="MeseqGui")
-        self.paned_window = Tkinter.PanedWindow(self.root, orient=Tkinter.HORIZONTAL)
+        self.root = tkinter.Tk(className="MeseqGui")
+        self.paned_window = tkinter.PanedWindow(self.root, orient=tkinter.HORIZONTAL)
 
         # menu bar
-        self.menubar = Tkinter.Menu(self.root)
-        filemenu = Tkinter.Menu(self.menubar, tearoff=0)
-        filemenu.add_command(label="Save", command=self.save)
-        filemenu.add_command(label="Quit", command=self.quit)
+        self.menubar = tkinter.Menu(self.root)
+        filemenu = tkinter.Menu(self.menubar, tearoff=0)
+        filemenu.add_command(label="Save (Ctrl-s)", command=self.save)
+        filemenu.add_command(label="Quit (Ctrl-q)", command=self.quit)
         self.menubar.add_cascade(label="File", menu=filemenu)
         self.root.config(menu=self.menubar)
 
@@ -37,33 +43,33 @@ class MeseqGui(object):
         self.root.bind('<Control-s>', self.save)
 
         # editor
-        self.editor = ScrolledText.ScrolledText(self.paned_window, wrap=Tkinter.N)
+        self.editor = tkinter.scrolledtext.ScrolledText(self.paned_window, wrap=tkinter.N)
         self.editor.bind('<KeyRelease>', self.cb_text_changed)
         self.editor.bind('<ButtonRelease-2>', self.cb_text_changed) # take pasting via the middle button
         self.editor.focus()
 
-        self.image = Tkinter.Label(self.paned_window)
+        self.image = tkinter.Label(self.paned_window)
         self.paned_window.add(self.editor)
         self.paned_window.add(self.image)
         self.filename = None
         self.needs_save = False
 
     def save(self, event=None):
-        contents = self.editor.get('1.0', Tkinter.END)
+        contents = self.editor.get('1.0', tkinter.END)
         if self.filename:
             f = open(self.filename, 'w')
-            f.write(contents.encode('utf8'))
+            f.write(contents)
             f.close()
             self.needs_save = False
         else:
-            filename = tkFileDialog.asksaveasfilename()
+            filename = tkinter.filedialog.asksaveasfilename()
             if filename:
                 self.filename = filename
                 self.save()
 
     def quit(self, event=None):
         if self.needs_save:
-            do_quit_anyway = tkMessageBox.askyesno('Quit',
+            do_quit_anyway = tkinter.messagebox.askyesno('Quit',
                     'There are unsaved changes.\n' +
                     'If you quit now, these changes will be lost.\n' +
                     'Quit anyway?')
@@ -74,31 +80,30 @@ class MeseqGui(object):
         if os.path.exists(filename):
             f = open(filename)
             text = f.read()
-            self.editor.insert(Tkinter.END, text.decode('utf-8'))
+            self.editor.insert(tkinter.END, text)
             
         self.filename = filename
 
     def cb_text_changed(self, event):
-        if event.char == '': return
         self.needs_save = True
         self.update_diagram()
 
     def update_diagram(self):
-        contents = self.editor.get('1.0', Tkinter.END)
+        contents = self.editor.get('1.0', tkinter.END)
         run_meseq(contents)
         self.update_image(TMP_PNG)
 
     def update_image(self, filename):
         try:
-            img = Tkinter.PhotoImage(file=filename)
+            img = tkinter.PhotoImage(file=filename)
             self.image.config(image=img)
             self.img_ref = img # keep a reference
-        except Tkinter.TclError:
+        except tkinter.TclError:
             self.image.config(text='no image')
 
     def display(self):
         self.update_diagram()
-        self.paned_window.pack(side=Tkinter.TOP, expand=Tkinter.Y, fill=Tkinter.BOTH, pady=2, padx=2)
+        self.paned_window.pack(side=tkinter.TOP, expand=tkinter.Y, fill=tkinter.BOTH, pady=2, padx=2)
         self.root.mainloop()
 
 

@@ -21,7 +21,7 @@ Meseq has the following features:
 
 setuptools.setup(
     name='meseq',
-    version='1.1.998',
+    version='2.0'
     description='Editor of Message Sequence Diagrams',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -29,13 +29,5 @@ setuptools.setup(
     author_email='fhoerni@free.fr',
     url='https://github.com/goeb/meseq',
     scripts=['meseq', 'meseqgui'],
-    requires=['cairo',
-        'pango',
-        'pangocairo',
-        'argparse',
-        'Tkinter',
-        'ScrolledText',
-        'tkFileDialog',
-        'tkMessageBox'
-        ]
+    requires=['argparse', 'tkinter' ]
     )
